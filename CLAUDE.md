@@ -251,3 +251,30 @@ When making changes:
 5. Update this documentation
 6. Follow TypeScript best practices
 7. Ensure all tools return MCP-compliant responses
+
+### Git Commit Guidelines
+
+When committing changes:
+1. **Remove Claude-specific artifacts** before committing:
+   - Remove any Claude-generated comments or markers
+   - Clean up the commit message footer (remove the Claude signature)
+   - Remove temporary Claude analysis files
+   - Ensure no AI conversation history is included
+
+2. **Clean commit messages**:
+   ```bash
+   # Instead of the auto-generated Claude message:
+   git commit -m "feat: Add new API methods"
+   
+   # Not this (with Claude artifacts):
+   git commit -m "feat: Add new API methods
+   
+   🤖 Generated with [Claude Code](https://claude.ai/code)
+   Co-Authored-By: Claude <noreply@anthropic.com>"
+   ```
+
+3. **Before pushing**:
+   - Review all changes for Claude-specific content
+   - Check for any temporary analysis files
+   - Ensure commit history is clean
+   - Remove any debugging console.logs added during development
