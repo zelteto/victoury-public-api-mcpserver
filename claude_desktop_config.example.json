@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "victoury-api": {
+      "command": "node",
+      "args": ["D:\\git\\GLOOBUS\\Victoury-public-api-mcpserver\\dist\\index.js"],
+      "env": {
+        "VICTOURY_API_URL": "https://api.victoury.com/v2",
+        "VICTOURY_API_KEY": "your_api_key_here",
+        "VICTOURY_API_SECRET": "your_api_secret_here"
+      }
+    }
+  }
+}

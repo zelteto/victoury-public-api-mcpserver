@@ -11,6 +11,32 @@ import {
   UpdateBookingParamsType,
   ListAvailabilityParamsType,
   AuthenticateParamsType,
+  ApiInfo,
+  ApiHealth,
+  Deal,
+  Option,
+  Document,
+  ProductStartingDate,
+  ProductPricing,
+  PackageAvailability,
+  Person,
+  Address,
+  Quote,
+  Payment,
+  GetDealDetailsParamsType,
+  UpdateDealParamsType,
+  SearchPublishDealsParamsType,
+  CreateOptionBookingParamsType,
+  OptionToBookingParamsType,
+  ViewDocumentParamsType,
+  DownloadDocumentParamsType,
+  GetProductStartingDatesParamsType,
+  GetProductStartingDatePricesParamsType,
+  GetPackagePriceAvailabilityParamsType,
+  UpdatePersonParamsType,
+  UpdateAddressParamsType,
+  InitializeQuoteParamsType,
+  RegisterCustomerPaymentParamsType,
 } from './types.js';
 
 export interface VictouryAPIConfig {
@@ -193,5 +219,187 @@ export class VictouryAPIClient {
 
   isAuthenticated(): boolean {
     return !!this.authToken;
+  }
+
+  // Service Monitoring
+  async getApiInfo(): Promise<ApiResponse<ApiInfo>> {
+    try {
+      const response = await this.client.get('/info');
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async getApiHealth(): Promise<ApiResponse<ApiHealth>> {
+    try {
+      const response = await this.client.get('/health');
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Deals
+  async getDealDetails(dealId: string): Promise<ApiResponse<Deal>> {
+    try {
+      const response = await this.client.get(`/deals/${dealId}`);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async updateDeal(
+    dealId: string,
+    params: Omit<UpdateDealParamsType, 'dealId'>
+  ): Promise<ApiResponse<Deal>> {
+    try {
+      const response = await this.client.patch(`/deals/${dealId}`, params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async searchPublishDeals(params?: SearchPublishDealsParamsType): Promise<ApiResponse<Deal[]>> {
+    try {
+      const response = await this.client.post('/deals/search', params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async createOptionBooking(params: CreateOptionBookingParamsType): Promise<ApiResponse<Option>> {
+    try {
+      const response = await this.client.post('/options', params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async optionToBooking(
+    optionId: string,
+    params?: Omit<OptionToBookingParamsType, 'optionId'>
+  ): Promise<ApiResponse<Booking>> {
+    try {
+      const response = await this.client.post(`/options/${optionId}/convert`, params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Documents
+  async viewDocument(documentId: string): Promise<ApiResponse<Document>> {
+    try {
+      const response = await this.client.get(`/documents/${documentId}`);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async downloadDocument(
+    documentId: string,
+    format?: string
+  ): Promise<ApiResponse<{ url: string }>> {
+    try {
+      const response = await this.client.get(`/documents/${documentId}/download`, {
+        params: { format },
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Advanced Product Methods
+  async getProductStartingDates(
+    productId: string,
+    params?: Omit<GetProductStartingDatesParamsType, 'productId'>
+  ): Promise<ApiResponse<ProductStartingDate[]>> {
+    try {
+      const response = await this.client.post(`/products/${productId}/starting-dates`, params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async getProductStartingDatePrices(
+    productId: string,
+    params: Omit<GetProductStartingDatePricesParamsType, 'productId'>
+  ): Promise<ApiResponse<ProductPricing>> {
+    try {
+      const response = await this.client.post(`/products/${productId}/pricing`, params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  async getPackagePriceAvailability(
+    productId: string,
+    packageId: string,
+    params: Omit<GetPackagePriceAvailabilityParamsType, 'productId' | 'packageId'>
+  ): Promise<ApiResponse<PackageAvailability>> {
+    try {
+      const response = await this.client.post(
+        `/products/${productId}/packages/${packageId}/availability`,
+        params
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Person Management
+  async updatePerson(
+    personId: string,
+    params: Omit<UpdatePersonParamsType, 'personId'>
+  ): Promise<ApiResponse<Person>> {
+    try {
+      const response = await this.client.patch(`/persons/${personId}`, params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Address Management
+  async updateAddress(
+    addressId: string,
+    params: Omit<UpdateAddressParamsType, 'addressId'>
+  ): Promise<ApiResponse<Address>> {
+    try {
+      const response = await this.client.patch(`/addresses/${addressId}`, params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Quote Management
+  async initializeQuote(params: InitializeQuoteParamsType): Promise<ApiResponse<Quote>> {
+    try {
+      const response = await this.client.post('/quotes/initialize', params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Customer Payments
+  async registerCustomerPayment(params: RegisterCustomerPaymentParamsType): Promise<ApiResponse<Payment>> {
+    try {
+      const response = await this.client.post('/payments', params);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 }

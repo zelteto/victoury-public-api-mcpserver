@@ -1,14 +1,22 @@
 # Victoury Public API MCP Server
 
-An MCP (Model Context Protocol) server implementation for the Victoury Public API v2, enabling AI agents to interact with Victoury's travel management platform.
+A comprehensive MCP (Model Context Protocol) server implementation for the Victoury Public API v2, providing full access to Victoury's travel management platform. This server enables AI agents to perform a wide range of operations including product management, deal workflows, customer management, booking operations, document handling, pricing queries, and payment processing.
 
 ## Features
 
+### Core Operations
 - 🔐 **Authentication**: Secure API key/secret authentication
-- 📦 **Product Management**: List and retrieve tour/product details
-- 👥 **Customer Search**: Find and manage customer information
-- 📅 **Booking Operations**: Create, update, and retrieve bookings
-- 🗓️ **Availability Checking**: Real-time availability queries
+- 📊 **Service Monitoring**: API health checks and system information
+- 📦 **Product Management**: List products, retrieve details, starting dates, and pricing
+- 👥 **Customer Operations**: Search customers, update person and address information
+- 📅 **Booking System**: Create, update, and retrieve bookings
+- 🗓️ **Availability Checking**: Real-time availability queries with package pricing
+
+### Advanced Features
+- 🎫 **Deal Management**: Search deals, create options, convert to bookings
+- 📄 **Document Handling**: View and download invoices, tickets, vouchers, contracts
+- 💰 **Quote System**: Initialize quotes with custom pricing components
+- 💳 **Payment Processing**: Register customer payments with transaction tracking
 - 🛡️ **Type Safety**: Full TypeScript support with Zod validation
 - ⚡ **Error Handling**: Comprehensive error management
 
@@ -165,6 +173,181 @@ Check availability for products within a date range.
   startDate: string;      // ISO 8601
   endDate: string;        // ISO 8601
   participants?: number;
+}
+```
+
+### get_api_info
+Retrieve API version and environment information.
+
+No parameters required.
+
+### get_api_health
+Check API health status and service availability.
+
+No parameters required.
+
+### get_deal_details
+Retrieve details of a specific deal.
+
+```typescript
+{
+  dealId: string;
+}
+```
+
+### update_deal
+Update deal information.
+
+```typescript
+{
+  dealId: string;
+  status?: string;
+  notes?: string;
+}
+```
+
+### search_publish_deals
+Search for published deals with filters.
+
+```typescript
+{
+  productId?: string;
+  startDate?: string;     // ISO 8601
+  endDate?: string;       // ISO 8601
+  destination?: string;
+  page?: number;
+  limit?: number;
+}
+```
+
+### create_option_booking
+Create an option/hold on a deal before final booking.
+
+```typescript
+{
+  dealId: string;
+  customerId: string;
+  participants: number;
+  notes?: string;
+}
+```
+
+### option_to_booking
+Convert an option/hold into a confirmed booking.
+
+```typescript
+{
+  optionId: string;
+  paymentMethod?: string;
+}
+```
+
+### view_document
+View document details (invoice, ticket, voucher, contract).
+
+```typescript
+{
+  documentId: string;
+}
+```
+
+### download_document
+Download a document in specified format.
+
+```typescript
+{
+  documentId: string;
+  format?: 'pdf' | 'html';  // default: 'pdf'
+}
+```
+
+### get_product_starting_dates
+Retrieve available starting dates for a product.
+
+```typescript
+{
+  productId: string;
+  startDate?: string;     // ISO 8601
+  endDate?: string;       // ISO 8601
+}
+```
+
+### get_product_starting_date_prices
+Get pricing for specific product starting date.
+
+```typescript
+{
+  productId: string;
+  startingDate: string;   // ISO 8601
+  participants?: number;
+}
+```
+
+### get_package_price_availability
+Check package pricing and availability.
+
+```typescript
+{
+  productId: string;
+  packageId: string;
+  startDate: string;      // ISO 8601
+  participants: number;
+}
+```
+
+### update_person
+Update person/traveler information.
+
+```typescript
+{
+  personId: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  dateOfBirth?: string;   // ISO 8601
+}
+```
+
+### update_address
+Update address information.
+
+```typescript
+{
+  addressId: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+}
+```
+
+### initialize_quote
+Initialize a new quote with pricing components.
+
+```typescript
+{
+  productId: string;
+  startDate: string;      // ISO 8601
+  participants: number;
+  priceComponents?: Array<{
+    type: string;
+    amount: number;
+  }>;
+}
+```
+
+### register_customer_payment
+Register a customer payment for a booking.
+
+```typescript
+{
+  bookingId: string;
+  amount: number;
+  currency: string;       // e.g., 'EUR', 'USD'
+  paymentMethod: string;
+  transactionId?: string;
 }
 ```
 

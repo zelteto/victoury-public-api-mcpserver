@@ -17,7 +17,23 @@ import {
   GetBookingDetailsParams,
   UpdateBookingParams,
   ListAvailabilityParams,
-  AuthenticateParams
+  AuthenticateParams,
+  GetApiInfoParams,
+  GetApiHealthParams,
+  GetDealDetailsParams,
+  UpdateDealParams,
+  SearchPublishDealsParams,
+  CreateOptionBookingParams,
+  OptionToBookingParams,
+  ViewDocumentParams,
+  DownloadDocumentParams,
+  GetProductStartingDatesParams,
+  GetProductStartingDatePricesParams,
+  GetPackagePriceAvailabilityParams,
+  UpdatePersonParams,
+  UpdateAddressParams,
+  InitializeQuoteParams,
+  RegisterCustomerPaymentParams
 } from './types.js';
 
 // Load environment variables
@@ -230,6 +246,383 @@ const TOOLS: Tool[] = [
       required: ['productId', 'startDate', 'endDate'],
     },
   },
+  // Service Monitoring Tools
+  {
+    name: 'get_api_info',
+    description: 'Retrieve API version and environment information',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'get_api_health',
+    description: 'Check API health status and service availability',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  // Deal Management Tools
+  {
+    name: 'get_deal_details',
+    description: 'Retrieve details of a specific deal',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        dealId: {
+          type: 'string',
+          description: 'Unique identifier of the deal',
+        },
+      },
+      required: ['dealId'],
+    },
+  },
+  {
+    name: 'update_deal',
+    description: 'Update deal information',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        dealId: {
+          type: 'string',
+          description: 'Unique identifier of the deal',
+        },
+        status: {
+          type: 'string',
+          description: 'New status for the deal',
+        },
+        notes: {
+          type: 'string',
+          description: 'Additional notes or comments',
+        },
+      },
+      required: ['dealId'],
+    },
+  },
+  {
+    name: 'search_publish_deals',
+    description: 'Search for published deals with filters',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        productId: {
+          type: 'string',
+          description: 'Filter by product ID',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Filter by start date (ISO 8601)',
+        },
+        endDate: {
+          type: 'string',
+          description: 'Filter by end date (ISO 8601)',
+        },
+        destination: {
+          type: 'string',
+          description: 'Filter by destination',
+        },
+        page: {
+          type: 'number',
+          description: 'Page number for pagination',
+        },
+        limit: {
+          type: 'number',
+          description: 'Number of results per page',
+        },
+      },
+    },
+  },
+  {
+    name: 'create_option_booking',
+    description: 'Create an option/hold on a deal before final booking',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        dealId: {
+          type: 'string',
+          description: 'Deal to create option for',
+        },
+        customerId: {
+          type: 'string',
+          description: 'Customer ID',
+        },
+        participants: {
+          type: 'number',
+          description: 'Number of participants',
+        },
+        notes: {
+          type: 'string',
+          description: 'Optional notes',
+        },
+      },
+      required: ['dealId', 'customerId', 'participants'],
+    },
+  },
+  {
+    name: 'option_to_booking',
+    description: 'Convert an option/hold into a confirmed booking',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        optionId: {
+          type: 'string',
+          description: 'Option ID to convert',
+        },
+        paymentMethod: {
+          type: 'string',
+          description: 'Payment method to use',
+        },
+      },
+      required: ['optionId'],
+    },
+  },
+  // Document Management Tools
+  {
+    name: 'view_document',
+    description: 'View document details (invoice, ticket, voucher, contract)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: {
+          type: 'string',
+          description: 'Document ID to view',
+        },
+      },
+      required: ['documentId'],
+    },
+  },
+  {
+    name: 'download_document',
+    description: 'Download a document in specified format',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        documentId: {
+          type: 'string',
+          description: 'Document ID to download',
+        },
+        format: {
+          type: 'string',
+          enum: ['pdf', 'html'],
+          description: 'Download format (default: pdf)',
+        },
+      },
+      required: ['documentId'],
+    },
+  },
+  // Advanced Product Tools
+  {
+    name: 'get_product_starting_dates',
+    description: 'Retrieve available starting dates for a product',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        productId: {
+          type: 'string',
+          description: 'Product ID',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Filter from date (ISO 8601)',
+        },
+        endDate: {
+          type: 'string',
+          description: 'Filter to date (ISO 8601)',
+        },
+      },
+      required: ['productId'],
+    },
+  },
+  {
+    name: 'get_product_starting_date_prices',
+    description: 'Get pricing for specific product starting date',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        productId: {
+          type: 'string',
+          description: 'Product ID',
+        },
+        startingDate: {
+          type: 'string',
+          description: 'Starting date to check prices for (ISO 8601)',
+        },
+        participants: {
+          type: 'number',
+          description: 'Number of participants for pricing',
+        },
+      },
+      required: ['productId', 'startingDate'],
+    },
+  },
+  {
+    name: 'get_package_price_availability',
+    description: 'Check package pricing and availability',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        productId: {
+          type: 'string',
+          description: 'Product ID',
+        },
+        packageId: {
+          type: 'string',
+          description: 'Package ID',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Start date (ISO 8601)',
+        },
+        participants: {
+          type: 'number',
+          description: 'Number of participants',
+        },
+      },
+      required: ['productId', 'packageId', 'startDate', 'participants'],
+    },
+  },
+  // Person Management Tools
+  {
+    name: 'update_person',
+    description: 'Update person/traveler information',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        personId: {
+          type: 'string',
+          description: 'Person ID to update',
+        },
+        firstName: {
+          type: 'string',
+          description: 'First name',
+        },
+        lastName: {
+          type: 'string',
+          description: 'Last name',
+        },
+        email: {
+          type: 'string',
+          description: 'Email address',
+        },
+        phone: {
+          type: 'string',
+          description: 'Phone number',
+        },
+        dateOfBirth: {
+          type: 'string',
+          description: 'Date of birth (ISO 8601)',
+        },
+      },
+      required: ['personId'],
+    },
+  },
+  // Address Management Tools
+  {
+    name: 'update_address',
+    description: 'Update address information',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        addressId: {
+          type: 'string',
+          description: 'Address ID to update',
+        },
+        street: {
+          type: 'string',
+          description: 'Street address',
+        },
+        city: {
+          type: 'string',
+          description: 'City',
+        },
+        state: {
+          type: 'string',
+          description: 'State/Province',
+        },
+        country: {
+          type: 'string',
+          description: 'Country',
+        },
+        postalCode: {
+          type: 'string',
+          description: 'Postal/ZIP code',
+        },
+      },
+      required: ['addressId'],
+    },
+  },
+  // Quote Management Tools
+  {
+    name: 'initialize_quote',
+    description: 'Initialize a new quote with pricing components',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        productId: {
+          type: 'string',
+          description: 'Product ID for the quote',
+        },
+        startDate: {
+          type: 'string',
+          description: 'Start date (ISO 8601)',
+        },
+        participants: {
+          type: 'number',
+          description: 'Number of participants',
+        },
+        priceComponents: {
+          type: 'array',
+          description: 'Optional custom price components',
+          items: {
+            type: 'object',
+            properties: {
+              type: {
+                type: 'string',
+                description: 'Component type',
+              },
+              amount: {
+                type: 'number',
+                description: 'Amount',
+              },
+            },
+          },
+        },
+      },
+      required: ['productId', 'startDate', 'participants'],
+    },
+  },
+  // Customer Payment Tools
+  {
+    name: 'register_customer_payment',
+    description: 'Register a customer payment for a booking',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        bookingId: {
+          type: 'string',
+          description: 'Booking ID',
+        },
+        amount: {
+          type: 'number',
+          description: 'Payment amount',
+        },
+        currency: {
+          type: 'string',
+          description: 'Currency code (e.g., EUR, USD)',
+        },
+        paymentMethod: {
+          type: 'string',
+          description: 'Payment method used',
+        },
+        transactionId: {
+          type: 'string',
+          description: 'Optional external transaction ID',
+        },
+      },
+      required: ['bookingId', 'amount', 'currency', 'paymentMethod'],
+    },
+  },
 ];
 
 // Create the MCP server
@@ -350,6 +743,227 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'list_availability': {
         const params = ListAvailabilityParams.parse(args);
         const result = await apiClient.listAvailability(params);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      // Service Monitoring
+      case 'get_api_info': {
+        const result = await apiClient.getApiInfo();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'get_api_health': {
+        const result = await apiClient.getApiHealth();
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      // Deal Management
+      case 'get_deal_details': {
+        const params = GetDealDetailsParams.parse(args);
+        const result = await apiClient.getDealDetails(params.dealId);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'update_deal': {
+        const params = UpdateDealParams.parse(args);
+        const { dealId, ...updateData } = params;
+        const result = await apiClient.updateDeal(dealId, updateData);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'search_publish_deals': {
+        const params = SearchPublishDealsParams.parse(args);
+        const result = await apiClient.searchPublishDeals(params);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'create_option_booking': {
+        const params = CreateOptionBookingParams.parse(args);
+        const result = await apiClient.createOptionBooking(params);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'option_to_booking': {
+        const params = OptionToBookingParams.parse(args);
+        const { optionId, ...conversionData } = params;
+        const result = await apiClient.optionToBooking(optionId, conversionData);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      // Document Management
+      case 'view_document': {
+        const params = ViewDocumentParams.parse(args);
+        const result = await apiClient.viewDocument(params.documentId);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'download_document': {
+        const params = DownloadDocumentParams.parse(args);
+        const result = await apiClient.downloadDocument(params.documentId, params.format);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      // Advanced Product Management
+      case 'get_product_starting_dates': {
+        const params = GetProductStartingDatesParams.parse(args);
+        const { productId, ...filterData } = params;
+        const result = await apiClient.getProductStartingDates(productId, filterData);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'get_product_starting_date_prices': {
+        const params = GetProductStartingDatePricesParams.parse(args);
+        const { productId, ...priceData } = params;
+        const result = await apiClient.getProductStartingDatePrices(productId, priceData);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'get_package_price_availability': {
+        const params = GetPackagePriceAvailabilityParams.parse(args);
+        const { productId, packageId, ...availabilityData } = params;
+        const result = await apiClient.getPackagePriceAvailability(productId, packageId, availabilityData);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      // Person Management
+      case 'update_person': {
+        const params = UpdatePersonParams.parse(args);
+        const { personId, ...updateData } = params;
+        const result = await apiClient.updatePerson(personId, updateData);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      // Address Management
+      case 'update_address': {
+        const params = UpdateAddressParams.parse(args);
+        const { addressId, ...updateData } = params;
+        const result = await apiClient.updateAddress(addressId, updateData);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      // Quote Management
+      case 'initialize_quote': {
+        const params = InitializeQuoteParams.parse(args);
+        const result = await apiClient.initializeQuote(params);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      // Customer Payments
+      case 'register_customer_payment': {
+        const params = RegisterCustomerPaymentParams.parse(args);
+        const result = await apiClient.registerCustomerPayment(params);
         return {
           content: [
             {
