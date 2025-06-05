@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "victoury-production": {
+      "command": "/absolute/path/to/victoury-mcp-server/deployment/docker-mcp-wrapper.sh",
+      "args": ["production"],
+      "env": {
+        "DOCKER_HOST": "unix:///var/run/docker.sock"
+      }
+    },
+    "victoury-development": {
+      "command": "/absolute/path/to/victoury-mcp-server/deployment/docker-mcp-wrapper.sh",
+      "args": ["development"]
+    },
+    "victoury-client-a": {
+      "command": "/absolute/path/to/victoury-mcp-server/deployment/docker-mcp-wrapper.sh",
+      "args": ["client-a-prod"]
+    }
+  }
+}

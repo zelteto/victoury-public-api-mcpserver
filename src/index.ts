@@ -10,6 +10,7 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
 import { VictouryAPIClient } from './api-client.js';
 import { 
   ListProductsParams,
@@ -1136,8 +1137,38 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
+// Start health check HTTP server
+function startHealthCheckServer() {
+  const port = parseInt(process.env.MCP_PORT || '3000', 10);
+  
+  const healthServer = http.createServer((req, res) => {
+    if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'healthy',
+        service: 'victoury-mcp-server',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'production'
+      }));
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
+    }
+  });
+
+  healthServer.listen(port, () => {
+    log(`Health check server listening on port ${port}`);
+  });
+
+  return healthServer;
+}
+
 // Start the server
 async function main() {
+  // Start health check server for Docker
+  startHealthCheckServer();
+  
+  // Start MCP server
   const transport = new StdioServerTransport();
   await server.connect(transport);
   log('Victoury API MCP Server running on stdio');
