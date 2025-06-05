@@ -231,18 +231,37 @@ export interface PackageAvailability {
   restrictions: string[];
 }
 
-// Person interface
+// Person interface (based on actual API response)
 export interface Person {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  dateOfBirth?: string;
-  nationality?: string;
-  passportNumber?: string;
-  createdAt: string;
-  updatedAt: string;
+  uuid: string;
+  id: number;
+  mainTraveler: boolean;
+  title?: string;
+  firstname: string;
+  lastname: string;
+  birthdate?: string;
+  gender?: string;
+  address?: {
+    uuid: string;
+    id: number;
+    street: string;
+    zipcode: string;
+    city: string;
+    state?: string;
+    country: string;
+  };
+  phones?: Array<{
+    uuid: string;
+    id: number;
+    number: string;
+    remark?: string;
+  }>;
+  emails?: Array<{
+    uuid: string;
+    id: number;
+    email: string;
+  }>;
+  messageId?: string | null;
 }
 
 // Enhanced Address interface
@@ -318,18 +337,25 @@ export const UpdateDealParams = z.object({
 });
 
 export const SearchPublishDealsParams = z.object({
-  productId: z.string().optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  destination: z.string().optional(),
+  operator: z.enum(['AND', 'OR']).optional().default('AND'),
+  criterias: z.array(z.object({
+    field: z.string(),
+    value: z.string(),
+    qualifier: z.enum(['=', '>', '<', '>=', '<=', 'LIKE', 'IN', 'NOT IN']).optional().default('='),
+  })).optional(),
   page: z.number().optional().default(1),
   limit: z.number().optional().default(20),
 });
 
 export const CreateOptionBookingParams = z.object({
+  action: z.enum(['O', 'B']), // O for option, B for booking
   dealId: z.string(),
   customerId: z.string(),
   participants: z.number().min(1),
+  currency: z.string().optional(),
+  arrangementType: z.string().optional(),
+  language: z.string().optional(),
+  profitCenter: z.string(),
   notes: z.string().optional(),
 });
 

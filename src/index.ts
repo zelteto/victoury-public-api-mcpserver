@@ -8,6 +8,8 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { VictouryAPIClient } from './api-client.js';
 import { 
   ListProductsParams,
@@ -39,32 +41,37 @@ import {
 // Load environment variables
 dotenv.config();
 
+// Create a simple file logger
+const logFile = path.join(process.cwd(), 'victoury-mcp-debug.log');
+const log = (message: string) => {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  console.error(message);
+  try {
+    fs.appendFileSync(logFile, logMessage);
+  } catch (e) {
+    // Ignore file write errors
+  }
+};
+
+// Debug: Log configuration
+log('\n=== Victoury API MCP Server Configuration ===');
+log(`API URL: ${process.env.VICTOURY_API_URL || 'https://api.victoury.com/v2'}`);
+log(`API Key: ${process.env.VICTOURY_API_KEY ? '[SET]' : '[NOT SET]'}`);
+log(`API Secret: ${process.env.VICTOURY_API_SECRET ? '[SET]' : '[NOT SET]'}`);
+log(`Timeout: ${process.env.VICTOURY_API_TIMEOUT || '30000'}ms`);
+log(`Log file: ${logFile}`);
+log('==========================================\n');
+
 // Initialize the API client
 const apiClient = new VictouryAPIClient({
   baseURL: process.env.VICTOURY_API_URL || 'https://api.victoury.com/v2',
   apiKey: process.env.VICTOURY_API_KEY,
+  apiSecret: process.env.VICTOURY_API_SECRET,
 });
 
 // Define available tools
 const TOOLS: Tool[] = [
-  {
-    name: 'authenticate',
-    description: 'Authenticate with the Victoury API using API credentials',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        apiKey: {
-          type: 'string',
-          description: 'API key for authentication',
-        },
-        apiSecret: {
-          type: 'string',
-          description: 'API secret for authentication',
-        },
-      },
-      required: ['apiKey', 'apiSecret'],
-    },
-  },
   {
     name: 'list_products',
     description: 'List available products/tours from the Victoury catalog',
@@ -306,21 +313,33 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
-        productId: {
+        operator: {
           type: 'string',
-          description: 'Filter by product ID',
+          enum: ['AND', 'OR'],
+          description: 'Search operator (default: AND)',
         },
-        startDate: {
-          type: 'string',
-          description: 'Filter by start date (ISO 8601)',
-        },
-        endDate: {
-          type: 'string',
-          description: 'Filter by end date (ISO 8601)',
-        },
-        destination: {
-          type: 'string',
-          description: 'Filter by destination',
+        criterias: {
+          type: 'array',
+          description: 'Array of search criteria',
+          items: {
+            type: 'object',
+            properties: {
+              field: {
+                type: 'string',
+                description: 'Field to search (e.g., id, uuid, destination, startDate)',
+              },
+              value: {
+                type: 'string',
+                description: 'Value to search for',
+              },
+              qualifier: {
+                type: 'string',
+                enum: ['=', '>', '<', '>=', '<=', 'LIKE', 'IN', 'NOT IN'],
+                description: 'Comparison operator (default: =)',
+              },
+            },
+            required: ['field', 'value'],
+          },
         },
         page: {
           type: 'number',
@@ -339,6 +358,11 @@ const TOOLS: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        action: {
+          type: 'string',
+          enum: ['O', 'B'],
+          description: 'Action type: O for option, B for booking',
+        },
         dealId: {
           type: 'string',
           description: 'Deal to create option for',
@@ -351,12 +375,28 @@ const TOOLS: Tool[] = [
           type: 'number',
           description: 'Number of participants',
         },
+        currency: {
+          type: 'string',
+          description: 'Currency code',
+        },
+        arrangementType: {
+          type: 'string',
+          description: 'Type of arrangement',
+        },
+        language: {
+          type: 'string',
+          description: 'The code of deal language',
+        },
+        profitCenter: {
+          type: 'string',
+          description: 'Code of deal brand',
+        },
         notes: {
           type: 'string',
           description: 'Optional notes',
         },
       },
-      required: ['dealId', 'customerId', 'participants'],
+      required: ['action', 'dealId', 'customerId', 'participants', 'profitCenter'],
     },
   },
   {
@@ -647,20 +687,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
+  log(`\n=== MCP Tool Request ===`);
+  log(`Tool: ${name}`);
+  log(`Arguments: ${JSON.stringify(args, null, 2)}`);
+  log(`Timestamp: ${new Date().toISOString()}`);
+
   try {
     switch (name) {
-      case 'authenticate': {
-        const params = AuthenticateParams.parse(args);
-        const result = await apiClient.authenticate(params);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      }
 
       case 'list_products': {
         const params = ListProductsParams.parse(args);
@@ -755,7 +788,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Service Monitoring
       case 'get_api_info': {
+        log(`Calling apiClient.getApiInfo()`);
         const result = await apiClient.getApiInfo();
+        log(`API Info Response: ${JSON.stringify(result, null, 2)}`);
         return {
           content: [
             {
@@ -848,29 +883,62 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Document Management
       case 'view_document': {
-        const params = ViewDocumentParams.parse(args);
-        const result = await apiClient.viewDocument(params.documentId);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
+        log(`\n--- Processing view_document tool ---`);
+        log(`Raw arguments: ${JSON.stringify(args)}`);
+        
+        try {
+          const params = ViewDocumentParams.parse(args);
+          log(`Parsed params: ${JSON.stringify(params)}`);
+          log(`Calling apiClient.viewDocument with ID: ${params.documentId}`);
+          
+          const result = await apiClient.viewDocument(params.documentId);
+          log(`API call successful, result: ${JSON.stringify(result)}`);
+          
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        } catch (toolError) {
+          log(`\n--- view_document tool error ---`);
+          log(`Error in tool handler: ${toolError}`);
+          log(`Error type: ${toolError?.constructor?.name}`);
+          log(`Error message: ${toolError instanceof Error ? toolError.message : String(toolError)}`);
+          log(`Error stack: ${toolError instanceof Error ? toolError.stack : 'No stack'}`);
+          throw toolError;
+        }
       }
 
       case 'download_document': {
-        const params = DownloadDocumentParams.parse(args);
-        const result = await apiClient.downloadDocument(params.documentId, params.format);
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
+        log(`\n--- Processing download_document tool ---`);
+        log(`Raw arguments: ${JSON.stringify(args)}`);
+        
+        try {
+          const params = DownloadDocumentParams.parse(args);
+          log(`Parsed params: ${JSON.stringify(params)}`);
+          log(`Calling apiClient.downloadDocument with ID: ${params.documentId}, format: ${params.format}`);
+          
+          const result = await apiClient.downloadDocument(params.documentId, params.format);
+          log(`API call successful, result: ${JSON.stringify(result)}`);
+          
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2),
+              },
+            ],
+          };
+        } catch (toolError) {
+          log(`\n--- download_document tool error ---`);
+          log(`Error in tool handler: ${toolError}`);
+          log(`Error type: ${toolError?.constructor?.name}`);
+          log(`Error message: ${toolError instanceof Error ? toolError.message : String(toolError)}`);
+          throw toolError;
+        }
       }
 
       // Advanced Product Management
@@ -978,6 +1046,70 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error) {
+    log(`\n=== MCP Tool Error ===`);
+    log(`Tool: ${name}`);
+    log(`Arguments: ${JSON.stringify(args, null, 2)}`);
+    log(`Error Type: ${error?.constructor?.name}`);
+    log(`Error Message: ${error instanceof Error ? error.message : error}`);
+    log(`Error Stack: ${error instanceof Error ? error.stack : 'No stack trace'}`);
+    
+    // Try to extract more error details
+    if (error instanceof Error && error.message.includes('API Error')) {
+      log(`\n=== API Error Details ===`);
+      const match = error.message.match(/API Error \((\d+)\): (.+)/);
+      if (match) {
+        log(`HTTP Status Code: ${match[1]}`);
+        log(`Error Response: ${match[2]}`);
+      }
+    }
+    
+    // Check for enhanced error details from axios interceptor
+    if (error && typeof error === 'object') {
+      const enhancedError = error as any;
+      
+      if (enhancedError.requestDetails) {
+        log(`\n=== Request Details That Caused Error ===`);
+        log(`Timestamp: ${enhancedError.requestDetails.timestamp}`);
+        log(`Method: ${enhancedError.requestDetails.method}`);
+        log(`Full URL: ${enhancedError.requestDetails.fullURL}`);
+        log(`Headers: ${JSON.stringify(enhancedError.requestDetails.headers, null, 2)}`);
+        log(`Query Params: ${JSON.stringify(enhancedError.requestDetails.params, null, 2)}`);
+        log(`Request Body: ${JSON.stringify(enhancedError.requestDetails.data, null, 2)}`);
+      }
+      
+      if (enhancedError.originalError) {
+        log(`\n=== Original Axios Error ===`);
+        const axiosError = enhancedError.originalError;
+        if (axiosError.response) {
+          log(`Response Status: ${axiosError.response.status}`);
+          log(`Response Data: ${JSON.stringify(axiosError.response.data, null, 2)}`);
+        }
+        if (axiosError.config) {
+          log(`Failed URL: ${axiosError.config.baseURL}${axiosError.config.url}`);
+        }
+      }
+    }
+    
+    // Log the raw error object with all properties
+    log(`\n=== Raw Error Object ===`);
+    const errorObj: any = {};
+    if (error instanceof Error) {
+      errorObj.name = error.name;
+      errorObj.message = error.message;
+      errorObj.stack = error.stack;
+      // Get all properties
+      Object.getOwnPropertyNames(error).forEach(key => {
+        errorObj[key] = (error as any)[key];
+      });
+    }
+    log(`Full Error Details: ${JSON.stringify(errorObj, (key, value) => {
+      // Prevent circular reference issues
+      if (key === 'originalError' || key === 'config' || key === 'request' || key === 'response') {
+        return '[Already logged above]';
+      }
+      return value;
+    }, 2)}`);
+    
     if (error instanceof z.ZodError) {
       return {
         content: [
@@ -1008,7 +1140,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('Victoury API MCP Server running on stdio');
+  log('Victoury API MCP Server running on stdio');
 }
 
 main().catch((error) => {

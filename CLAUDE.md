@@ -36,45 +36,141 @@ victoury-public-api-mcpserver/
 
 The server exposes the following tools through MCP:
 
-1. **authenticate**
-   - Purpose: Authenticate with Victoury API
-   - Parameters: `apiKey`, `apiSecret`
-   - Returns: Authentication token
+#### System Information
+1. **get_api_info**
+   - Purpose: Retrieve API version and environment information
+   - Parameters: None
+   - Returns: API version, environment details
+   - Note: Uses `/info` endpoint (not `/v2/info`)
 
-2. **list_products**
-   - Purpose: List available tours/products
-   - Parameters: `page`, `limit`, `category`, `destination`, `startDate`, `endDate`
-   - Returns: Paginated product list
+2. **get_api_health**
+   - Purpose: Check API health status and service availability
+   - Parameters: None
+   - Returns: Health status of API components
+   - Note: Uses `/health` endpoint (not `/v2/health`)
 
-3. **get_product_details**
-   - Purpose: Get detailed product information
-   - Parameters: `productId`
-   - Returns: Complete product details
+#### Deal Management
+3. **get_deal_details**
+   - Purpose: Retrieve details of a specific deal
+   - Parameters: `dealId` (UUID)
+   - Returns: Complete deal information
 
-4. **search_customers**
-   - Purpose: Search for customers
-   - Parameters: `query`, `email`, `phone`, `page`, `limit`
-   - Returns: Customer search results
+4. **update_deal**
+   - Purpose: Update deal information
+   - Parameters: `dealId`, `status`, `notes`
+   - Returns: Updated deal object
 
-5. **create_booking**
-   - Purpose: Create new booking
-   - Parameters: `productId`, `customerId`, `startDate`, `endDate`, `participants`, `notes`
+5. **search_publish_deals**
+   - Purpose: Search for published deals with filters
+   - Parameters: `destination`, `startDate`, `endDate`, `productId`, `page`, `limit`
+   - Returns: Array of matching deals
+
+6. **create_option_booking**
+   - Purpose: Create an option/hold on a deal before final booking
+   - Parameters: `dealId`, `customerId`, `participants`, `notes`
+   - Returns: Option booking confirmation
+
+7. **option_to_booking**
+   - Purpose: Convert an option/hold into a confirmed booking
+   - Parameters: `optionId`, `paymentMethod`
    - Returns: Booking confirmation
 
-6. **get_booking_details**
-   - Purpose: Retrieve booking information
-   - Parameters: `bookingId`
-   - Returns: Booking details
+#### Document Management
+8. **view_document**
+   - Purpose: View document details (invoice, ticket, voucher, contract)
+   - Parameters: `documentId`
+   - Returns: Document metadata
 
-7. **update_booking**
-   - Purpose: Modify existing booking
-   - Parameters: `bookingId`, `status`, `participants`, `notes`
-   - Returns: Updated booking
+9. **download_document**
+   - Purpose: Download a document in specified format
+   - Parameters: `documentId`, `format` (pdf/html)
+   - Returns: Document file
 
-8. **list_availability**
-   - Purpose: Check product availability
-   - Parameters: `productId`, `startDate`, `endDate`, `participants`
-   - Returns: Availability calendar
+#### Product Management
+10. **list_products**
+    - Purpose: List available products/tours from catalog
+    - Parameters: `page`, `limit`, `category`, `destination`, `startDate`, `endDate`
+    - Returns: Paginated product list
+
+11. **get_product_details**
+    - Purpose: Get detailed product information
+    - Parameters: `productId`
+    - Returns: Complete product details
+
+12. **get_product_starting_dates**
+    - Purpose: Retrieve available starting dates for a product
+    - Parameters: `productId`, `startDate`, `endDate`
+    - Returns: Array of available dates
+
+13. **get_product_starting_date_prices**
+    - Purpose: Get pricing for specific product starting date
+    - Parameters: `productId`, `startingDate`, `participants`
+    - Returns: Pricing details
+
+14. **get_package_price_availability**
+    - Purpose: Check package pricing and availability
+    - Parameters: `productId`, `packageId`, `startDate`, `participants`
+    - Returns: Package pricing and availability
+
+#### Customer Management
+15. **search_customers**
+    - Purpose: Search for customers in the system
+    - Parameters: `query`, `email`, `phone`, `page`, `limit`
+    - Returns: Customer search results
+
+#### Person/Address Management
+16. **update_person**
+    - Purpose: Update person/traveler information
+    - Parameters: `personId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`
+    - Returns: Updated person details
+
+17. **update_address**
+    - Purpose: Update address information
+    - Parameters: `addressId`, `street`, `city`, `state`, `postalCode`, `country`
+    - Returns: Updated address details
+
+#### Quote Management
+18. **initialize_quote**
+    - Purpose: Initialize a new quote with pricing components
+    - Parameters: `productId`, `startDate`, `participants`, `priceComponents`
+    - Returns: Quote details with pricing
+
+#### Booking Management
+19. **create_booking**
+    - Purpose: Create a new booking for a product
+    - Parameters: `productId`, `customerId`, `startDate`, `endDate`, `participants`, `notes`
+    - Returns: Booking confirmation
+
+20. **get_booking_details**
+    - Purpose: Retrieve booking information
+    - Parameters: `bookingId`
+    - Returns: Complete booking details
+
+21. **update_booking**
+    - Purpose: Modify existing booking
+    - Parameters: `bookingId`, `status`, `participants`, `notes`
+    - Returns: Updated booking
+
+#### Payment Management
+22. **register_customer_payment**
+    - Purpose: Register a customer payment for a booking
+    - Parameters: `bookingId`, `amount`, `currency`, `paymentMethod`, `transactionId`
+    - Returns: Payment confirmation
+
+#### Availability Management
+23. **list_availability**
+    - Purpose: Check product availability within date range
+    - Parameters: `productId`, `startDate`, `endDate`, `participants`
+    - Returns: Availability calendar
+
+### API Reference
+
+For detailed API endpoint documentation, see the [Victoury API Reference](./reference/victoury-api-reference.md) file which contains:
+- Complete endpoint specifications
+- Request/response examples
+- Error codes and handling
+- Authentication details
+- Rate limiting information
 
 ### API Client Architecture
 

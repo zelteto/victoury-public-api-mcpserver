@@ -28,6 +28,7 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+victoury-mcp-debug.log
 
 # Testing
 coverage/
@@ -36,3 +37,6 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
+
+# Reference folder
+reference/
