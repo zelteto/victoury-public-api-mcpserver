@@ -1,0 +1,143 @@
+{
+  "name": "Chat with Victoury API",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "=👋 Welcome to Victoury Travel Assistant!\n\nI can help you with:\n- 🔍 Search for tours and products\n- 👥 Find customer information\n- 📅 Check availability\n- 📋 List available deals\n\nWhat would you like to do today?",
+        "options": {
+          "title": "Victoury Travel Assistant"
+        }
+      },
+      "id": "chat-trigger",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "options": {
+          "temperature": 0.7,
+          "systemMessage": "You are a helpful travel booking assistant for Victoury API. You have access to search tours, check availability, and manage bookings. Always parse user requests and call the appropriate Victoury API endpoint. Be specific about what information you found."
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [450, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "{{OpenAI_Credential_ID}}",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "Search Tours/Products",
+        "description": "Search for available tours and travel products. Can filter by category, destination, dates, etc.",
+        "jsCode": "const input = JSON.parse($input);\n\n// Extract search parameters from the input\nconst args = {\n  limit: input.limit || 10,\n  page: input.page || 1\n};\n\nif (input.category) args.category = input.category;\nif (input.destination) args.destination = input.destination;\nif (input.startDate) args.startDate = input.startDate;\nif (input.endDate) args.endDate = input.endDate;\n\n// Call Victoury MCP server\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'http://victoury-mcp:3000/tools/list_products',\n  body: {\n    arguments: args,\n    credentials: {\n      apiUrl: $vars.victoury_api_url || 'https://api.victoury.com/v2',\n      tenant: $vars.victoury_tenant || 'your-tenant',\n      sessionId: $vars.victoury_session || 'your-session'\n    }\n  }\n});\n\nif (response.success && response.result?.data) {\n  const products = response.result.data;\n  return {\n    json: {\n      found: products.length,\n      products: products.map(p => ({\n        id: p.id,\n        name: p.name,\n        category: p.category || 'tour',\n        destination: p.destination,\n        price: p.price,\n        description: p.description?.substring(0, 100) + '...'\n      }))\n    }\n  };\n} else {\n  return {\n    json: {\n      error: 'No products found',\n      details: response.error\n    }\n  };\n}"
+      },
+      "id": "tool-search-products",
+      "name": "Search Products Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "name": "Search Customers",
+        "description": "Search for customers by email, name, or phone number",
+        "jsCode": "const input = JSON.parse($input);\n\n// Build search parameters\nconst args = {};\nif (input.email) args.email = input.email;\nif (input.phone) args.phone = input.phone;\nif (input.query) args.query = input.query;\nargs.limit = input.limit || 10;\n\n// Call Victoury MCP server\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'http://victoury-mcp:3000/tools/search_customers',\n  body: {\n    arguments: args,\n    credentials: {\n      apiUrl: $vars.victoury_api_url || 'https://api.victoury.com/v2',\n      tenant: $vars.victoury_tenant || 'your-tenant',\n      sessionId: $vars.victoury_session || 'your-session'\n    }\n  }\n});\n\nif (response.success && response.result?.data) {\n  const customers = response.result.data;\n  return {\n    json: {\n      found: customers.length,\n      customers: customers.map(c => ({\n        id: c.id,\n        name: `${c.firstName} ${c.lastName}`,\n        email: c.email,\n        phone: c.phone\n      }))\n    }\n  };\n} else {\n  return {\n    json: {\n      error: 'No customers found',\n      details: response.error\n    }\n  };\n}"
+      },
+      "id": "tool-search-customers",
+      "name": "Search Customers Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "name": "Check Availability",
+        "description": "Check availability for a specific product/tour on given dates",
+        "jsCode": "const input = JSON.parse($input);\n\nif (!input.productId) {\n  return { json: { error: 'Product ID is required' } };\n}\n\nconst args = {\n  productId: input.productId,\n  startDate: input.startDate || new Date().toISOString().split('T')[0],\n  endDate: input.endDate || input.startDate || new Date().toISOString().split('T')[0],\n  participants: input.participants || 1\n};\n\n// Call Victoury MCP server\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'http://victoury-mcp:3000/tools/list_availability',\n  body: {\n    arguments: args,\n    credentials: {\n      apiUrl: $vars.victoury_api_url || 'https://api.victoury.com/v2',\n      tenant: $vars.victoury_tenant || 'your-tenant',\n      sessionId: $vars.victoury_session || 'your-session'\n    }\n  }\n});\n\nif (response.success && response.result?.data) {\n  return {\n    json: {\n      productId: args.productId,\n      dates: `${args.startDate} to ${args.endDate}`,\n      participants: args.participants,\n      availability: response.result.data\n    }\n  };\n} else {\n  return {\n    json: {\n      error: 'Could not check availability',\n      details: response.error\n    }\n  };\n}"
+      },
+      "id": "tool-check-availability",
+      "name": "Check Availability Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {},
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [750, 300]
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Products Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Customers Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

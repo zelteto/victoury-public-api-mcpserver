@@ -1,0 +1,119 @@
+{
+  "name": "Victoury MCP Client (Proper Integration)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "content": "## MCP Client Configuration\n\n### For STDIO Transport:\n- **Command**: `node`\n- **Args**: `/app/dist/mcp-stdio-server.js`\n- **Environment Variables**: Set your Victoury credentials\n\n### For HTTP/SSE Transport:\n- **Transport**: HTTP\n- **URL**: `http://victoury-mcp-sse:3001/mcp`\n- **Method**: GET (for SSE)\n\n### Available Tools:\n- `list_products` - List tours\n- `search_customers` - Find customers\n- `check_availability` - Check tour availability",
+        "height": 350,
+        "width": 450
+      },
+      "id": "note",
+      "name": "Setup Instructions",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, 50]
+    },
+    {
+      "parameters": {
+        "name": "List Victoury Products",
+        "description": "Search for tours and travel products",
+        "transport": "stdio",
+        "command": "node",
+        "args": "/app/dist/mcp-stdio-server.js",
+        "env": {
+          "VICTOURY_API_URL": "https://api.victoury.com/v2",
+          "VICTOURY_TENANT": "your-tenant",
+          "VICTOURY_SESSION_ID": "your-session"
+        }
+      },
+      "id": "mcp-client-stdio",
+      "name": "MCP Client (STDIO)",
+      "type": "@n8n/n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "name": "List Victoury Products (SSE)",
+        "description": "Search for tours via SSE transport",
+        "transport": "sse",
+        "url": "http://victoury-mcp-sse:3001/mcp"
+      },
+      "id": "mcp-client-sse",
+      "name": "MCP Client (SSE)",
+      "type": "@n8n/n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "prompt": "=List 5 tours in Paris",
+        "hasOutputParser": false
+      },
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo"
+      },
+      "id": "chat-model",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [550, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "OpenAI"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client (STDIO)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

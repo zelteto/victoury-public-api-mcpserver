@@ -1,0 +1,142 @@
+{
+  "name": "Victoury API Integration (HTTP)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f8c4d6e9-3b2a-4e7f-9d1c-8a5b6c4e2f0d",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Configure your Victoury credentials here\nconst credentials = {\n  apiUrl: \"https://api.victoury.com/v2\",\n  tenant: \"your-tenant\",\n  sessionId: \"your-session\"\n};\n\n// Or use n8n variables\n// const credentials = {\n//   apiUrl: $vars.victoury_api_url,\n//   tenant: $vars.victoury_tenant,\n//   sessionId: $vars.victoury_session\n// };\n\nreturn {\n  credentials,\n  baseUrl: \"http://victoury-mcp:3000\"\n};"
+      },
+      "id": "a1b2c3d4-5e6f-7g8h-9i0j-k1l2m3n4o5p6",
+      "name": "Setup Credentials",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.baseUrl }}/tools/list_products",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "arguments",
+              "value": "={{ { limit: 5, category: 'tours' } }}"
+            },
+            {
+              "name": "credentials",
+              "value": "={{ $json.credentials }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "p6o5n4m3-l2k1-j0i9-h8g7-f6e5d4c3b2a1",
+      "name": "List Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Setup Credentials').item.json.baseUrl }}/tools/search_customers",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "arguments",
+              "value": "={{ { email: 'customer@example.com' } }}"
+            },
+            {
+              "name": "credentials",
+              "value": "={{ $('Setup Credentials').item.json.credentials }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "q7r8s9t0-u1v2-w3x4-y5z6-a7b8c9d0e1f2",
+      "name": "Search Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "summary",
+              "value": "=Products Found: {{ $('List Products').item.json.result?.data?.length || 0 }}\nCustomers Found: {{ $('Search Customer').item.json.result?.data?.length || 0 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "z0a1b2c3-d4e5-f6g7-h8i9-j0k1l2m3n4o5",
+      "name": "Summarize Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Setup Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setup Credentials": {
+      "main": [
+        [
+          {
+            "node": "List Products",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Search Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Products": {
+      "main": [
+        [
+          {
+            "node": "Summarize Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Customer": {
+      "main": [
+        [
+          {
+            "node": "Summarize Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+// Credentials that can be passed with each request
+export const ApiCredentials = z.object({
+  url: z.string().url(),
+  tenant: z.string(),
+  sessionId: z.string(),
+}).optional();
+
 // Authentication parameters
 export const AuthenticateParams = z.object({
   apiKey: z.string(),
@@ -14,10 +21,12 @@ export const ListProductsParams = z.object({
   destination: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 export const GetProductDetailsParams = z.object({
   productId: z.string(),
+  credentials: ApiCredentials,
 });
 
 // Customer-related parameters
@@ -27,6 +36,7 @@ export const SearchCustomersParams = z.object({
   phone: z.string().optional(),
   page: z.number().optional().default(1),
   limit: z.number().optional().default(20),
+  credentials: ApiCredentials,
 });
 
 // Booking-related parameters
@@ -37,10 +47,12 @@ export const CreateBookingParams = z.object({
   endDate: z.string().optional(),
   participants: z.number().min(1),
   notes: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 export const GetBookingDetailsParams = z.object({
   bookingId: z.string(),
+  credentials: ApiCredentials,
 });
 
 export const UpdateBookingParams = z.object({
@@ -48,6 +60,7 @@ export const UpdateBookingParams = z.object({
   status: z.enum(['confirmed', 'pending', 'cancelled']).optional(),
   participants: z.number().min(1).optional(),
   notes: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 // Availability parameters
@@ -56,6 +69,7 @@ export const ListAvailabilityParams = z.object({
   startDate: z.string(),
   endDate: z.string(),
   participants: z.number().min(1).optional(),
+  credentials: ApiCredentials,
 });
 
 // API Response types
@@ -322,18 +336,24 @@ export type ListAvailabilityParamsType = z.infer<typeof ListAvailabilityParams>;
 export type AuthenticateParamsType = z.infer<typeof AuthenticateParams>;
 
 // Service Monitoring parameters
-export const GetApiInfoParams = z.object({});
-export const GetApiHealthParams = z.object({});
+export const GetApiInfoParams = z.object({
+  credentials: ApiCredentials,
+});
+export const GetApiHealthParams = z.object({
+  credentials: ApiCredentials,
+});
 
 // Deal-related parameters
 export const GetDealDetailsParams = z.object({
   dealId: z.string(),
+  credentials: ApiCredentials,
 });
 
 export const UpdateDealParams = z.object({
   dealId: z.string(),
   status: z.string().optional(),
   notes: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 export const SearchPublishDealsParams = z.object({
@@ -345,6 +365,7 @@ export const SearchPublishDealsParams = z.object({
   })).optional(),
   page: z.number().optional().default(1),
   limit: z.number().optional().default(20),
+  credentials: ApiCredentials,
 });
 
 export const CreateOptionBookingParams = z.object({
@@ -357,21 +378,25 @@ export const CreateOptionBookingParams = z.object({
   language: z.string().optional(),
   profitCenter: z.string(),
   notes: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 export const OptionToBookingParams = z.object({
   optionId: z.string(),
   paymentMethod: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 // Document-related parameters
 export const ViewDocumentParams = z.object({
   documentId: z.string(),
+  credentials: ApiCredentials,
 });
 
 export const DownloadDocumentParams = z.object({
   documentId: z.string(),
   format: z.enum(['pdf', 'html']).optional().default('pdf'),
+  credentials: ApiCredentials,
 });
 
 // Advanced Product parameters
@@ -379,12 +404,14 @@ export const GetProductStartingDatesParams = z.object({
   productId: z.string(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 export const GetProductStartingDatePricesParams = z.object({
   productId: z.string(),
   startingDate: z.string(),
   participants: z.number().min(1).optional(),
+  credentials: ApiCredentials,
 });
 
 export const GetPackagePriceAvailabilityParams = z.object({
@@ -392,6 +419,7 @@ export const GetPackagePriceAvailabilityParams = z.object({
   packageId: z.string(),
   startDate: z.string(),
   participants: z.number().min(1),
+  credentials: ApiCredentials,
 });
 
 // Person-related parameters
@@ -402,6 +430,7 @@ export const UpdatePersonParams = z.object({
   email: z.string().email().optional(),
   phone: z.string().optional(),
   dateOfBirth: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 // Address-related parameters
@@ -412,6 +441,7 @@ export const UpdateAddressParams = z.object({
   state: z.string().optional(),
   country: z.string().optional(),
   postalCode: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 // Quote-related parameters
@@ -423,6 +453,7 @@ export const InitializeQuoteParams = z.object({
     type: z.string(),
     amount: z.number(),
   })).optional(),
+  credentials: ApiCredentials,
 });
 
 // Customer Payment parameters
@@ -432,6 +463,7 @@ export const RegisterCustomerPaymentParams = z.object({
   currency: z.string(),
   paymentMethod: z.string(),
   transactionId: z.string().optional(),
+  credentials: ApiCredentials,
 });
 
 // New type exports

@@ -1,0 +1,186 @@
+{
+  "name": "Simple Chat Victoury (No AI)",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "none",
+        "content": "=## Available Commands:\n\n1. **list products** - Shows available tours\n2. **search customer [email]** - Find a customer\n3. **check availability [productId]** - Check if tour is available\n\nExample: Type \"list products\" and submit",
+        "description": "Simple chat interface for Victoury API",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook Chat",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "victoury-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse user input\nconst userInput = $input.first().json.body?.message || $input.first().json.query?.message || '';\nconst input = userInput.toLowerCase().trim();\n\n// Determine action based on input\nlet action = 'unknown';\nlet params = {};\n\nif (input.includes('list product') || input.includes('show product') || input.includes('tours')) {\n  action = 'list_products';\n  params = { limit: 10 };\n} \nelse if (input.includes('search customer') || input.includes('find customer')) {\n  // Extract email from input\n  const emailMatch = input.match(/[\\w.-]+@[\\w.-]+\\.[\\w]+/);\n  if (emailMatch) {\n    action = 'search_customers';\n    params = { email: emailMatch[0] };\n  } else {\n    action = 'search_customers';\n    params = { query: input.replace(/search customer|find customer/g, '').trim() };\n  }\n}\nelse if (input.includes('check availability') || input.includes('availability')) {\n  // Extract product ID from input\n  const idMatch = input.match(/\\b\\w+\\b$/); // Last word as ID\n  if (idMatch) {\n    action = 'list_availability';\n    params = {\n      productId: idMatch[0],\n      startDate: new Date().toISOString().split('T')[0],\n      endDate: new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0],\n      participants: 2\n    };\n  }\n}\n\nreturn {\n  action,\n  params,\n  userInput\n};"
+      },
+      "id": "parse-input",
+      "name": "Parse User Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "operation": "notEqual",
+              "value2": "unknown"
+            }
+          ]
+        }
+      },
+      "id": "if-valid",
+      "name": "Valid Command?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://victoury-mcp:3000/tools/{{ $json.action }}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "arguments",
+              "value": "={{ $json.params }}"
+            },
+            {
+              "name": "credentials",
+              "value": "={{ { \"apiUrl\": $vars.victoury_api_url || \"https://api.victoury.com/v2\", \"tenant\": $vars.victoury_tenant || \"your-tenant\", \"sessionId\": $vars.victoury_session || \"your-session\" } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "call-mcp",
+      "name": "Call MCP Server",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 280]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\n\nif (response.success && response.result?.data) {\n  const data = response.result.data;\n  let message = '';\n  \n  // Format based on action\n  const action = $('Parse User Input').first().json.action;\n  \n  if (action === 'list_products') {\n    message = `Found ${data.length} tours:\\n\\n`;\n    data.forEach((p, i) => {\n      message += `${i+1}. **${p.name}**\\n`;\n      message += `   Category: ${p.category || 'Tour'}\\n`;\n      message += `   Destination: ${p.destination || 'Various'}\\n`;\n      message += `   Price: ${p.price?.amount ? `$${p.price.amount} ${p.price.currency}` : 'Contact for price'}\\n\\n`;\n    });\n  }\n  else if (action === 'search_customers') {\n    message = `Found ${data.length} customers:\\n\\n`;\n    data.forEach((c, i) => {\n      message += `${i+1}. ${c.firstName} ${c.lastName}\\n`;\n      message += `   Email: ${c.email}\\n`;\n      message += `   Phone: ${c.phone || 'N/A'}\\n\\n`;\n    });\n  }\n  else if (action === 'list_availability') {\n    message = `Availability information:\\n\\n`;\n    if (data.length > 0) {\n      message += '✅ Tour is available on the following dates:\\n';\n      data.forEach(slot => {\n        message += `- ${slot.date}: ${slot.spotsAvailable} spots\\n`;\n      });\n    } else {\n      message += '❌ No availability found for the selected dates.';\n    }\n  }\n  \n  return { message };\n} else {\n  return { \n    message: `Error: ${response.error || 'Could not process request'}` \n  };\n}"
+      },
+      "id": "format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 280]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "=Sorry, I didn't understand your request.\\n\\nTry:\\n- \"list products\"\\n- \"search customer john@example.com\"\\n- \"check availability PROD123\"\\n\\nYou said: \"{{ $json.userInput }}\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "unknown-command",
+      "name": "Unknown Command",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3,
+      "position": [850, 380]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 330]
+    }
+  ],
+  "connections": {
+    "Webhook Chat": {
+      "main": [
+        [
+          {
+            "node": "Parse User Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse User Input": {
+      "main": [
+        [
+          {
+            "node": "Valid Command?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Command?": {
+      "main": [
+        [
+          {
+            "node": "Call MCP Server",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call MCP Server": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unknown Command": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

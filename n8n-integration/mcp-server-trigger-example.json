@@ -1,0 +1,29 @@
+{
+  "name": "MCP Server Trigger Example (Not for Victoury)",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "none",
+        "description": "This example shows how MCP Server Trigger works.\n\nNOTE: This makes n8n act as an MCP server for AI tools to connect to.\nIt does NOT connect to your Victoury MCP server.\n\nYou need the 'MCP Client Tool' node (not available) to connect to Victoury."
+      },
+      "id": "mcp-trigger",
+      "name": "MCP Server Trigger",
+      "type": "@n8n/n8n-nodes-langchain.mcpServerTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "content": "## This is what MCP Server Trigger does:\n\n1. **Exposes n8n as an MCP server** at a URL like:\n   `http://your-n8n-instance/mcp/...`\n\n2. **AI tools (like Claude) can connect** to this URL\n\n3. **They can execute n8n workflows** through MCP protocol\n\n## What you actually need:\n\n**MCP Client Tool** (not available in your n8n) which would:\n- Connect TO your Victoury MCP server\n- Use it as a tool in AI workflows\n\n## Current Solution:\n\nUse HTTP Request nodes to call your Victoury MCP server directly.",
+        "height": 400,
+        "width": 600
+      },
+      "id": "note",
+      "name": "Explanation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [500, 200]
+    }
+  ],
+  "connections": {}
+}

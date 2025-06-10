@@ -181,6 +181,47 @@ The `VictouryAPIClient` class handles:
 - Request/response interceptors
 - Type-safe method signatures
 
+### Credentials Management
+
+The MCP server supports two modes for credentials:
+
+#### 1. Default: Environment Variables
+When starting the MCP server, it reads credentials from environment variables:
+- `VICTOURY_API_URL`: Base URL for Victoury API (default: https://api.victoury.com/v2)
+- `VICTOURY_API_KEY`: Your API key (used as Tenant header)
+- `VICTOURY_API_SECRET`: Your API secret (used as Session-Id header)
+
+This is the default behavior and requires no changes to existing code.
+
+#### 2. Dynamic: Per-Request Credentials
+Each tool now accepts an optional `credentials` parameter that can override the default environment variables:
+
+```json
+{
+  "tool": "list_products",
+  "arguments": {
+    "category": "tours",
+    "credentials": {
+      "url": "https://api.client-specific.victoury.com/v2",
+      "tenant": "client-specific-tenant",
+      "sessionId": "client-specific-session"
+    }
+  }
+}
+```
+
+**How it works:**
+- If `credentials` are provided in the request, they override environment variables for that specific API call
+- If `credentials` are not provided, the server uses the environment variables
+- This allows backward compatibility while enabling multi-tenant support
+- Each request is isolated with its own credentials when provided
+
+**Use cases:**
+- Single-tenant deployments: Just use environment variables (no code changes needed)
+- Multi-tenant deployments: Pass credentials with each request
+- Environment switching: Switch between dev/staging/prod in the same conversation
+- Client isolation: Handle multiple clients from a single MCP server instance
+
 ## Development Setup
 
 ### Prerequisites

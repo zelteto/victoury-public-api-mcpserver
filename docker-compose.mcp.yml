@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # n8n workflow automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n-mcp
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=development
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - mcp-network
+
+  # Victoury MCP SSE Server (for n8n MCP Client)
+  victoury-mcp-sse:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile
+    container_name: victoury-mcp-sse
+    command: ["npm", "run", "mcp-sse"]
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - MCP_PORT=3001
+      - NODE_ENV=production
+      - VICTOURY_API_URL=${VICTOURY_API_URL:-https://api.victoury.com/v2}
+      - VICTOURY_TENANT=${VICTOURY_TENANT}
+      - VICTOURY_SESSION_ID=${VICTOURY_SESSION_ID}
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Original HTTP Server (for comparison)
+  victoury-http:
+    build:
+      context: .
+      dockerfile: deployment/Dockerfile
+    container_name: victoury-http
+    command: ["npm", "run", "http-server"]
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - HTTP_PORT=3000
+      - NODE_ENV=production
+      - VICTOURY_API_URL=${VICTOURY_API_URL:-https://api.victoury.com/v2}
+      - VICTOURY_TENANT=${VICTOURY_TENANT}
+      - VICTOURY_SESSION_ID=${VICTOURY_SESSION_ID}
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
+
+volumes:
+  n8n_data:
+    name: n8n_mcp_data

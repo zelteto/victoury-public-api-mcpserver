@@ -1,0 +1,229 @@
+{
+  "name": "Victoury API Advanced Examples",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2a7b6e0e-3456-4321-9abc-def012345678",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://victoury-mcp-{{$json[\"environment\"]}}:3000/tools/search_customers",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "arguments",
+              "value": "={\"query\": \"{{$json[\"customerEmail\"]}}\"}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "customer-search",
+      "name": "Search Customer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1",
+          "name": "Victoury API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Multi-environment product availability check\nconst productId = $input.first().json.productId;\nconst startDate = $input.first().json.startDate;\nconst endDate = $input.first().json.endDate;\nconst participants = $input.first().json.participants || 2;\n\nconst environments = ['prod', 'staging'];\nconst results = [];\n\nfor (const env of environments) {\n  try {\n    const response = await $http.request({\n      method: 'POST',\n      url: `http://victoury-mcp-${env}:3000/tools/list_availability`,\n      headers: {\n        'X-API-Key': $credentials.apiKey\n      },\n      body: {\n        arguments: {\n          productId,\n          startDate,\n          endDate,\n          participants\n        }\n      }\n    });\n    \n    results.push({\n      environment: env,\n      available: response.result?.data?.length > 0,\n      slots: response.result?.data || []\n    });\n  } catch (error) {\n    results.push({\n      environment: env,\n      available: false,\n      error: error.message\n    });\n  }\n}\n\nreturn results;"
+      },
+      "id": "multi-env-check",
+      "name": "Check Availability Multi-Env",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://victoury-mcp-prod:3000/batch",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "operations",
+              "value": "=[\n  {\n    \"tool\": \"get_product_details\",\n    \"arguments\": {\n      \"productId\": \"{{$json[\"productId\"]}}\"\n    }\n  },\n  {\n    \"tool\": \"get_product_starting_dates\",\n    \"arguments\": {\n      \"productId\": \"{{$json[\"productId\"]}}\",\n      \"startDate\": \"{{$json[\"startDate\"]}}\",\n      \"endDate\": \"{{$json[\"endDate\"]}}\"\n    }\n  },\n  {\n    \"tool\": \"get_product_starting_date_prices\",\n    \"arguments\": {\n      \"productId\": \"{{$json[\"productId\"]}}\",\n      \"startingDate\": \"{{$json[\"startDate\"]}}\",\n      \"participants\": {{$json[\"participants\"]}}\n    }\n  }\n]"
+            }
+          ]
+        }
+      },
+      "id": "batch-product-info",
+      "name": "Batch Product Info",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json[\"bookingConfirmed\"]}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "booking-check",
+      "name": "IF Booking Confirmed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://victoury-mcp-prod:3000/tools/create_option_booking",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "arguments",
+              "value": "={\n  \"action\": \"O\",\n  \"dealId\": \"{{$json[\"dealId\"]}}\",\n  \"customerId\": \"{{$json[\"customerId\"]}}\",\n  \"participants\": {{$json[\"participants\"]}},\n  \"profitCenter\": \"{{$json[\"profitCenter\"]}}\",\n  \"notes\": \"Created via n8n automation\"\n}"
+            }
+          ]
+        }
+      },
+      "id": "create-option",
+      "name": "Create Option Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://victoury-mcp-prod:3000/tools/register_customer_payment",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "arguments",
+              "value": "={\n  \"bookingId\": \"{{$json[\"bookingId\"]}}\",\n  \"amount\": {{$json[\"amount\"]}},\n  \"currency\": \"{{$json[\"currency\"]}}\",\n  \"paymentMethod\": \"{{$json[\"paymentMethod\"]}}\",\n  \"transactionId\": \"{{$json[\"transactionId\"]}}\"\n}"
+            }
+          ]
+        }
+      },
+      "id": "register-payment",
+      "name": "Register Payment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 400]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Dynamic environment switching based on input\nconst useProduction = $input.first().json.useProduction;\nconst credentials = $input.first().json.credentials;\n\n// If custom credentials provided, use them\nif (credentials) {\n  return {\n    url: 'http://victoury-mcp-prod:3000/tools/list_products',\n    body: {\n      arguments: {\n        limit: 10\n      },\n      credentials: {\n        apiUrl: credentials.apiUrl,\n        tenant: credentials.tenant,\n        sessionId: credentials.sessionId\n      }\n    }\n  };\n}\n\n// Otherwise use environment-based routing\nconst server = useProduction ? 'victoury-mcp-prod' : 'victoury-mcp-staging';\nreturn {\n  url: `http://${server}:3000/tools/list_products`,\n  body: {\n    arguments: {\n      limit: 10\n    }\n  }\n};"
+      },
+      "id": "dynamic-routing",
+      "name": "Dynamic Environment Router",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "content": "## Victoury API Advanced Workflow Examples\n\nThis workflow demonstrates:\n\n1. **Multi-Environment Operations**\n   - Search across production and staging\n   - Compare availability between environments\n\n2. **Batch Operations**\n   - Get product details, dates, and prices in one request\n   - Reduces API calls and improves performance\n\n3. **Conditional Logic**\n   - Create option bookings based on availability\n   - Register payments after booking confirmation\n\n4. **Dynamic Credentials**\n   - Switch between environments dynamically\n   - Use custom credentials per request\n\n### Setup Required:\n1. Create HTTP Header Auth credentials with X-API-Key\n2. Update server URLs if using different container names\n3. Test with your actual product and customer IDs",
+        "height": 420,
+        "width": 600
+      },
+      "id": "documentation",
+      "name": "Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [200, 100]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Search Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Customer": {
+      "main": [
+        [
+          {
+            "node": "Check Availability Multi-Env",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability Multi-Env": {
+      "main": [
+        [
+          {
+            "node": "Batch Product Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch Product Info": {
+      "main": [
+        [
+          {
+            "node": "IF Booking Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Booking Confirmed": {
+      "main": [
+        [
+          {
+            "node": "Create Option Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Register Payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "versionId": "d8f4e7a3-2b1c-4d5e-9f6a-3c8b7e9d0a2f",
+  "triggerCount": 0,
+  "tags": []
+}

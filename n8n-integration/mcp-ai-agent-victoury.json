@@ -1,0 +1,150 @@
+{
+  "name": "Victoury MCP with AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "public": false,
+        "initialMessages": "=Hi! I can help you search for tours and manage bookings through the Victoury API. What would you like to do?",
+        "options": {}
+      },
+      "id": "chat-trigger",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "name": "Victoury API - List Products",
+        "description": "Search and list travel products/tours",
+        "transport": "stdio",
+        "command": "node",
+        "args": "={{ $json.mcpServerPath }}/dist/index.js",
+        "env": "={{ { \"VICTOURY_API_URL\": \"https://api.victoury.com/v2\", \"VICTOURY_TENANT\": $vars.victoury_tenant || \"your-tenant\", \"VICTOURY_SESSION_ID\": $vars.victoury_session || \"your-session\" } }}",
+        "toolChoice": "auto"
+      },
+      "id": "mcp-tool-products",
+      "name": "MCP Tool - Products",
+      "type": "@n8n/n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "name": "Victoury API - Customers",
+        "description": "Search and manage customers",
+        "transport": "stdio",
+        "command": "node", 
+        "args": "={{ $json.mcpServerPath }}/dist/index.js",
+        "env": "={{ { \"VICTOURY_API_URL\": \"https://api.victoury.com/v2\", \"VICTOURY_TENANT\": $vars.victoury_tenant, \"VICTOURY_SESSION_ID\": $vars.victoury_session } }}",
+        "toolChoice": "auto"
+      },
+      "id": "mcp-tool-customers",
+      "name": "MCP Tool - Customers",
+      "type": "@n8n/n8n-nodes-langchain.toolMcp",
+      "typeVersion": 1,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "model": "gpt-3.5-turbo",
+        "options": {
+          "systemMessage": "You are a helpful travel booking assistant. You have access to the Victoury API to search for tours, check availability, and manage bookings. Always be specific about what information you need from the user."
+        }
+      },
+      "id": "openai-chat",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [450, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "1",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conversationStyle": "Conversational"
+      },
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Set the path to your MCP server\nreturn {\n  mcpServerPath: \"/mnt/d/git/GLOOBUS/Victoury-public-api-mcpserver\"\n};"
+      },
+      "id": "setup",
+      "name": "Setup MCP Path",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 500]
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Tool - Products": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Tool - Customers": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setup MCP Path": {
+      "main": [
+        [
+          {
+            "node": "MCP Tool - Products",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MCP Tool - Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "name": "Victoury MCP Client Integration",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "transport": "http",
+        "httpMethod": "POST",
+        "httpUrl": "http://victoury-mcp:3000/tools/list_products",
+        "command": "",
+        "args": "",
+        "env": "={{ {} }}",
+        "toolName": "list_products",
+        "toolDescription": "List Victoury products",
+        "toolInput": "={{ { \"arguments\": { \"limit\": 5, \"category\": \"tours\" }, \"credentials\": { \"apiUrl\": \"https://api.victoury.com/v2\", \"tenant\": \"your-tenant\", \"sessionId\": \"your-session\" } } }}"
+      },
+      "id": "mcp-client-products",
+      "name": "MCP Client - List Products",
+      "type": "n8n-nodes-mcp.mcp",
+      "typeVersion": 1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "transport": "http",
+        "httpMethod": "GET",
+        "httpUrl": "http://victoury-mcp:3000/tools",
+        "command": "",
+        "args": "",
+        "env": "={{ {} }}",
+        "toolName": "get_tools",
+        "toolDescription": "Get available MCP tools"
+      },
+      "id": "mcp-client-tools",
+      "name": "MCP Client - Get Tools",
+      "type": "n8n-nodes-mcp.mcp",
+      "typeVersion": 1,
+      "position": [450, 400]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "MCP Client - List Products",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MCP Client - Get Tools",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

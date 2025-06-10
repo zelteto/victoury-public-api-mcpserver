@@ -71,6 +71,27 @@ const apiClient = new VictouryAPIClient({
   apiSecret: process.env.VICTOURY_API_SECRET,
 });
 
+// Define credentials schema for tool inputs
+const credentialsSchema = {
+  type: 'object',
+  description: 'API credentials for this request',
+  properties: {
+    url: {
+      type: 'string',
+      description: 'API base URL (e.g., https://api.victoury.com/v2)',
+    },
+    tenant: {
+      type: 'string',
+      description: 'Tenant identifier',
+    },
+    sessionId: {
+      type: 'string',
+      description: 'Session ID for authentication',
+    },
+  },
+  required: ['url', 'tenant', 'sessionId'],
+};
+
 // Define available tools
 const TOOLS: Tool[] = [
   {
@@ -105,6 +126,7 @@ const TOOLS: Tool[] = [
           type: 'string',
           description: 'Filter by end date (ISO 8601)',
         },
+        credentials: credentialsSchema,
       },
     },
   },
@@ -118,6 +140,7 @@ const TOOLS: Tool[] = [
           type: 'string',
           description: 'Unique identifier of the product',
         },
+        credentials: credentialsSchema,
       },
       required: ['productId'],
     },
@@ -150,6 +173,7 @@ const TOOLS: Tool[] = [
           description: 'Number of items per page',
           default: 20,
         },
+        credentials: credentialsSchema,
       },
     },
   },
@@ -183,6 +207,7 @@ const TOOLS: Tool[] = [
           type: 'string',
           description: 'Additional booking notes',
         },
+        credentials: credentialsSchema,
       },
       required: ['productId', 'customerId', 'startDate', 'participants'],
     },
@@ -197,6 +222,7 @@ const TOOLS: Tool[] = [
           type: 'string',
           description: 'Unique identifier of the booking',
         },
+        credentials: credentialsSchema,
       },
       required: ['bookingId'],
     },
@@ -224,6 +250,7 @@ const TOOLS: Tool[] = [
           type: 'string',
           description: 'Updated booking notes',
         },
+        credentials: credentialsSchema,
       },
       required: ['bookingId'],
     },
@@ -250,6 +277,7 @@ const TOOLS: Tool[] = [
           type: 'number',
           description: 'Number of participants to check availability for',
         },
+        credentials: credentialsSchema,
       },
       required: ['productId', 'startDate', 'endDate'],
     },
@@ -260,7 +288,9 @@ const TOOLS: Tool[] = [
     description: 'Retrieve API version and environment information',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        credentials: credentialsSchema,
+      },
     },
   },
   {
@@ -711,7 +741,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'get_product_details': {
         const params = GetProductDetailsParams.parse(args);
-        const result = await apiClient.getProductDetails(params.productId);
+        const result = await apiClient.getProductDetails(params);
         return {
           content: [
             {
@@ -750,7 +780,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'get_booking_details': {
         const params = GetBookingDetailsParams.parse(args);
-        const result = await apiClient.getBookingDetails(params.bookingId);
+        const result = await apiClient.getBookingDetails(params);
         return {
           content: [
             {
@@ -789,8 +819,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // Service Monitoring
       case 'get_api_info': {
+        const params = GetApiInfoParams.parse(args);
         log(`Calling apiClient.getApiInfo()`);
-        const result = await apiClient.getApiInfo();
+        const result = await apiClient.getApiInfo(params);
         log(`API Info Response: ${JSON.stringify(result, null, 2)}`);
         return {
           content: [
@@ -803,7 +834,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case 'get_api_health': {
-        const result = await apiClient.getApiHealth();
+        const params = GetApiHealthParams.parse(args);
+        const result = await apiClient.getApiHealth(params);
         return {
           content: [
             {
@@ -817,7 +849,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       // Deal Management
       case 'get_deal_details': {
         const params = GetDealDetailsParams.parse(args);
-        const result = await apiClient.getDealDetails(params.dealId);
+        const result = await apiClient.getDealDetails(params);
         return {
           content: [
             {
@@ -892,7 +924,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           log(`Parsed params: ${JSON.stringify(params)}`);
           log(`Calling apiClient.viewDocument with ID: ${params.documentId}`);
           
-          const result = await apiClient.viewDocument(params.documentId);
+          const result = await apiClient.viewDocument(params);
           log(`API call successful, result: ${JSON.stringify(result)}`);
           
           return {
@@ -922,7 +954,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           log(`Parsed params: ${JSON.stringify(params)}`);
           log(`Calling apiClient.downloadDocument with ID: ${params.documentId}, format: ${params.format}`);
           
-          const result = await apiClient.downloadDocument(params.documentId, params.format);
+          const result = await apiClient.downloadDocument(params);
           log(`API call successful, result: ${JSON.stringify(result)}`);
           
           return {

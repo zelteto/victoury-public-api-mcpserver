@@ -28,6 +28,8 @@ import {
   GetDealDetailsParamsType,
   UpdateDealParamsType,
   SearchPublishDealsParamsType,
+  GetProductDetailsParamsType,
+  GetBookingDetailsParamsType,
   CreateOptionBookingParamsType,
   OptionToBookingParamsType,
   ViewDocumentParamsType,
@@ -39,6 +41,8 @@ import {
   UpdateAddressParamsType,
   InitializeQuoteParamsType,
   RegisterCustomerPaymentParamsType,
+  GetApiInfoParamsType,
+  GetApiHealthParamsType,
 } from './types.js';
 
 export interface VictouryAPIConfig {
@@ -64,8 +68,10 @@ const log = (message: string) => {
 export class VictouryAPIClient {
   private client: AxiosInstance;
   private authToken?: string;
+  private defaultConfig: VictouryAPIConfig;
 
   constructor(config: VictouryAPIConfig) {
+    this.defaultConfig = config;
     this.client = axios.create({
       baseURL: config.baseURL,
       timeout: config.timeout || 30000,
@@ -228,6 +234,49 @@ export class VictouryAPIClient {
     );
   }
 
+  // Helper method to create a new client with dynamic credentials
+  private createClientWithCredentials(credentials?: { url?: string; tenant?: string; sessionId?: string }): AxiosInstance {
+    if (!credentials || (!credentials.url && !credentials.tenant && !credentials.sessionId)) {
+      return this.client;
+    }
+
+    const newClient = axios.create({
+      baseURL: credentials.url || this.defaultConfig.baseURL,
+      timeout: this.defaultConfig.timeout || 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Tenant': credentials.tenant || this.defaultConfig.apiKey || '',
+        'Session-Id': credentials.sessionId || this.defaultConfig.apiSecret || '',
+      },
+    });
+
+    // Set up interceptors for the new client
+    newClient.interceptors.request.use(
+      (config) => {
+        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        return config;
+      },
+      (error) => {
+        console.error('Request error:', error);
+        return Promise.reject(error);
+      }
+    );
+    
+    newClient.interceptors.response.use(
+      (response) => {
+        console.log(`API Response: ${response.status} ${response.config.url}`);
+        return response;
+      },
+      (error) => {
+        console.error('Response error:', error.response?.status, error.config?.url);
+        return Promise.reject(error);
+      }
+    );
+
+    return newClient;
+  }
+
   // Authentication - not needed for this API as headers are set in constructor
   async authenticate(params: AuthenticateParamsType): Promise<ApiResponse<{ token: string }>> {
     // This API uses Tenant and Session-Id headers which are already set
@@ -240,17 +289,24 @@ export class VictouryAPIClient {
   // Products
   async listProducts(params?: ListProductsParamsType): Promise<ApiResponse<Product[]>> {
     try {
-      const response = await this.client.get('/products', { params });
+      const { credentials, ...apiParams } = params || {};
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.get('/products', { params: apiParams });
       return response.data;
     } catch (error) {
       throw this.handleError(error);
     }
   }
 
-  async getProductDetails(productId: string): Promise<ApiResponse<Product>> {
+  async getProductDetails(params: GetProductDetailsParamsType | string): Promise<ApiResponse<Product>> {
     try {
+      // Handle both old signature (string) and new signature (params object)
+      const productId = typeof params === 'string' ? params : params.productId;
+      const credentials = typeof params === 'object' ? params.credentials : undefined;
+      
+      const client = this.createClientWithCredentials(credentials);
       // Based on the API, this should be a POST request to /products/details.json
-      const response = await this.client.post('/products/details.json', {
+      const response = await client.post('/products/details.json', {
         productId: parseInt(productId),
         returnAllPrices: true
       });
@@ -263,7 +319,9 @@ export class VictouryAPIClient {
   // Customers
   async searchCustomers(params?: SearchCustomersParamsType): Promise<ApiResponse<Customer[]>> {
     try {
-      const response = await this.client.get('/customers', { params });
+      const { credentials, ...apiParams } = params || {};
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.get('/customers', { params: apiParams });
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -282,16 +340,22 @@ export class VictouryAPIClient {
   // Bookings
   async createBooking(params: CreateBookingParamsType): Promise<ApiResponse<Booking>> {
     try {
-      const response = await this.client.post('/bookings', params);
+      const { credentials, ...apiParams } = params;
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.post('/bookings', apiParams);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
     }
   }
 
-  async getBookingDetails(bookingId: string): Promise<ApiResponse<Booking>> {
+  async getBookingDetails(params: GetBookingDetailsParamsType | string): Promise<ApiResponse<Booking>> {
     try {
-      const response = await this.client.get(`/bookings/${bookingId}`);
+      const bookingId = typeof params === 'string' ? params : params.bookingId;
+      const credentials = typeof params === 'object' ? params.credentials : undefined;
+      
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.get(`/bookings/${bookingId}`);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -303,7 +367,9 @@ export class VictouryAPIClient {
     params: Omit<UpdateBookingParamsType, 'bookingId'>
   ): Promise<ApiResponse<Booking>> {
     try {
-      const response = await this.client.patch(`/bookings/${bookingId}`, params);
+      const { credentials, ...apiParams } = params;
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.patch(`/bookings/${bookingId}`, apiParams);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -330,7 +396,9 @@ export class VictouryAPIClient {
   // Availability
   async listAvailability(params: ListAvailabilityParamsType): Promise<ApiResponse<Availability[]>> {
     try {
-      const response = await this.client.get('/availability', { params });
+      const { credentials, ...apiParams } = params;
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.get('/availability', { params: apiParams });
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -370,14 +438,17 @@ export class VictouryAPIClient {
   }
 
   // Service Monitoring
-  async getApiInfo(): Promise<ApiResponse<ApiInfo>> {
+  async getApiInfo(params?: GetApiInfoParamsType): Promise<ApiResponse<ApiInfo>> {
     try {
+      const credentials = params?.credentials;
+      const baseURL = credentials?.url || this.defaultConfig.baseURL;
+      
       // Create a separate client without auth headers for the info endpoint
       // Remove /v2 from baseURL as /info is at root level
-      const rootBaseURL = this.client.defaults.baseURL?.replace('/v2', '');
+      const rootBaseURL = baseURL.replace('/v2', '');
       const infoClient = axios.create({
         baseURL: rootBaseURL,
-        timeout: this.client.defaults.timeout,
+        timeout: this.defaultConfig.timeout || 30000,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -424,12 +495,15 @@ export class VictouryAPIClient {
     }
   }
 
-  async getApiHealth(): Promise<ApiResponse<ApiHealth>> {
+  async getApiHealth(params?: GetApiHealthParamsType): Promise<ApiResponse<ApiHealth>> {
     try {
+      const credentials = params?.credentials;
+      const baseURL = credentials?.url || this.defaultConfig.baseURL;
+      
       // Create a separate client without auth headers for the health endpoint
       const healthClient = axios.create({
-        baseURL: this.client.defaults.baseURL?.replace('/v2', ''), // Remove /v2 for health endpoint
-        timeout: this.client.defaults.timeout,
+        baseURL: baseURL.replace('/v2', ''), // Remove /v2 for health endpoint
+        timeout: this.defaultConfig.timeout || 30000,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -479,9 +553,13 @@ export class VictouryAPIClient {
   }
 
   // Deals
-  async getDealDetails(dealId: string): Promise<ApiResponse<Deal>> {
+  async getDealDetails(params: GetDealDetailsParamsType | string): Promise<ApiResponse<Deal>> {
     try {
-      const response = await this.client.get(`/deals/${dealId}.json?do_not_publish_docs=false`);
+      const dealId = typeof params === 'string' ? params : params.dealId;
+      const credentials = typeof params === 'object' ? params.credentials : undefined;
+      
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.get(`/deals/${dealId}.json?do_not_publish_docs=false`);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -493,7 +571,9 @@ export class VictouryAPIClient {
     params: Omit<UpdateDealParamsType, 'dealId'>
   ): Promise<ApiResponse<Deal>> {
     try {
-      const response = await this.client.patch(`/deals/${dealId}.json`, params);
+      const { credentials, ...apiParams } = params;
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.patch(`/deals/${dealId}.json`, apiParams);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -502,7 +582,9 @@ export class VictouryAPIClient {
 
   async searchPublishDeals(params?: SearchPublishDealsParamsType): Promise<ApiResponse<Deal[]>> {
     try {
-      const response = await this.client.post('/deals/search.json', params);
+      const { credentials, ...apiParams } = params || {};
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.post('/deals/search.json', apiParams);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -511,7 +593,9 @@ export class VictouryAPIClient {
 
   async createOptionBooking(params: CreateOptionBookingParamsType): Promise<ApiResponse<Option>> {
     try {
-      const response = await this.client.post('/deals/booking.json', params);
+      const { credentials, ...apiParams } = params;
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.post('/deals/booking.json', apiParams);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -523,7 +607,9 @@ export class VictouryAPIClient {
     params?: Omit<OptionToBookingParamsType, 'optionId'>
   ): Promise<ApiResponse<Booking>> {
     try {
-      const response = await this.client.get(`/deals/${optionId}/optiontobooking.json?do_not_publish_docs=false`);
+      const { credentials, ...apiParams } = params || {};
+      const client = this.createClientWithCredentials(credentials);
+      const response = await client.get(`/deals/${optionId}/optiontobooking.json?do_not_publish_docs=false`);
       return response.data;
     } catch (error) {
       throw this.handleError(error);
@@ -531,8 +617,11 @@ export class VictouryAPIClient {
   }
 
   // Documents
-  async viewDocument(documentId: string): Promise<ApiResponse<Document>> {
+  async viewDocument(params: ViewDocumentParamsType | string): Promise<ApiResponse<Document>> {
     try {
+      const documentId = typeof params === 'string' ? params : params.documentId;
+      const credentials = typeof params === 'object' ? params.credentials : undefined;
+      const client = this.createClientWithCredentials(credentials);
       log(`\n--- viewDocument called ---`);
       log(`Document ID: ${documentId}`);
       log(`Document ID type: ${typeof documentId}`);
@@ -540,8 +629,8 @@ export class VictouryAPIClient {
       log(`  - Contains 'offer': ${documentId.includes('offer')}`);
       log(`  - Contains underscore: ${documentId.includes('_')}`);
       log(`  - Numeric part: ${documentId.match(/\d+/)?.[0]}`);
-      log(`Base URL: ${this.client.defaults.baseURL}`);
-      log(`Headers: ${JSON.stringify(this.client.defaults.headers.common)}`);
+      log(`Base URL: ${client.defaults.baseURL}`);
+      log(`Headers: ${JSON.stringify(client.defaults.headers.common)}`);
       
       // Based on the error "Document null not found", let's try different ID formats
       const numericId = documentId.match(/\d+/)?.[0];
@@ -576,7 +665,7 @@ export class VictouryAPIClient {
       for (const endpoint of possibleEndpoints) {
         try {
           log(`Attempting endpoint: ${endpoint}`);
-          const response = await this.client.get(endpoint);
+          const response = await client.get(endpoint);
           
           log(`\n--- viewDocument response ---`);
           log(`Successful endpoint: ${endpoint}`);
@@ -607,17 +696,21 @@ export class VictouryAPIClient {
   }
 
   async downloadDocument(
-    documentId: string,
+    params: DownloadDocumentParamsType | string,
     format?: string
   ): Promise<ApiResponse<{ url: string }>> {
     try {
+      const documentId = typeof params === 'string' ? params : params.documentId;
+      const credentials = typeof params === 'object' ? params.credentials : undefined;
+      const actualFormat = typeof params === 'object' ? params.format : format;
+      const client = this.createClientWithCredentials(credentials);
       log(`\n--- downloadDocument called ---`);
       log(`Document ID: ${documentId}`);
-      log(`Format: ${format || 'default'}`);
-      log(`Base URL: ${this.client.defaults.baseURL}`);
+      log(`Format: ${actualFormat || 'default'}`);
+      log(`Base URL: ${client.defaults.baseURL}`);
       
       // Since offer_116 suggests this might be an offer, let's try offer-specific endpoints
-      const possibleEndpoints = format 
+      const possibleEndpoints = actualFormat 
         ? [
             `/documents/${documentId}/download?format=${format}`,
             `/documents/${documentId}/download.${format}`,
@@ -644,7 +737,7 @@ export class VictouryAPIClient {
       for (const endpoint of possibleEndpoints) {
         try {
           log(`Attempting download endpoint: ${endpoint}`);
-          const response = await this.client.get(endpoint);
+          const response = await client.get(endpoint);
           
           log(`\n--- downloadDocument response ---`);
           log(`Successful endpoint: ${endpoint}`);
@@ -658,7 +751,7 @@ export class VictouryAPIClient {
             return {
               success: true,
               data: {
-                url: `${this.client.defaults.baseURL}${endpoint}`
+                url: `${client.defaults.baseURL}${endpoint}`
               }
             };
           }
