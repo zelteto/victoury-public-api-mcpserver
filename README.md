@@ -1,37 +1,31 @@
-# Victoury Public API MCP Server
+# Victoury Public API FastMCP Server
 
-A comprehensive MCP (Model Context Protocol) server implementation for the Victoury Public API v2, providing full access to Victoury's travel management platform. This server enables AI agents to perform a wide range of operations including product management, deal workflows, customer management, booking operations, document handling, pricing queries, and payment processing.
+A modern FastMCP server implementation for the Victoury Public API v2, providing comprehensive access to Victoury's travel management platform with **dynamic credential support**. This server enables AI agents to perform travel operations across multiple tenants and environments seamlessly.
 
-## Features
+## ✨ Key Features
 
-### Core Operations
-- 🔐 **Authentication**: Secure API key/secret authentication
-- 📊 **Service Monitoring**: API health checks and system information
-- 📦 **Product Management**: List products, retrieve details, starting dates, and pricing
-- 👥 **Customer Operations**: Search customers, update person and address information
-- 📅 **Booking System**: Create, update, and retrieve bookings
-- 🗓️ **Availability Checking**: Real-time availability queries with package pricing
+### 🔐 **Dynamic Credentials**
+- **No environment variables required** - credentials passed per request
+- **Multi-tenant support** - switch tenants/environments dynamically
+- **Secure** - credentials never stored in configuration
 
-### Advanced Features
-- 🎫 **Deal Management**: Search deals, create options, convert to bookings
-- 📄 **Document Handling**: View and download invoices, tickets, vouchers, contracts
-- 💰 **Quote System**: Initialize quotes with custom pricing components
-- 💳 **Payment Processing**: Register customer payments with transaction tracking
-- 🛡️ **Type Safety**: Full TypeScript support with Zod validation
-- ⚡ **Error Handling**: Comprehensive error management
+### 🚀 **Modern FastMCP Implementation**
+- Built with [FastMCP TypeScript](https://github.com/punkpeye/fastmcp)
+- Full TypeScript support with Zod validation
+- Comprehensive tool descriptions and examples
+- Real-time error handling and debugging
 
-## Installation
+### 📋 **Comprehensive API Coverage**
+- **Service Monitoring**: API health and version info
+- **Deal Management**: Create, update, search deals and bookings
+- **Product Operations**: Listings, details, pricing, availability
+- **Customer Management**: Search and update customer information
+- **Document Handling**: View and download travel documents
+- **Payment Processing**: Register customer payments
 
-### Using npm/yarn
-
-```bash
-npm install victoury-public-api-mcpserver
-# or
-yarn add victoury-public-api-mcpserver
-```
+## 🛠️ Installation
 
 ### From Source
-
 ```bash
 git clone https://github.com/yourusername/victoury-public-api-mcpserver.git
 cd victoury-public-api-mcpserver
@@ -39,331 +33,226 @@ npm install
 npm run build
 ```
 
-## Configuration
+## ⚙️ Claude Desktop Configuration
 
-1. Copy the environment template:
+### Step 1: Locate Configuration File
+
+**Windows:**
+```
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
+**macOS:**
+```
+~/Library/Application Support/Claude/claude_desktop_config.json
+```
+
+**Linux:**
+```
+~/.config/Claude/claude_desktop_config.json
+```
+
+### Step 2: Add FastMCP Server
+
+Edit your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "victoury-fastmcp": {
+      "command": "node",
+      "args": ["/path/to/victoury-public-api-mcpserver/dist/index.js"]
+    }
+  }
+}
+```
+
+**Replace `/path/to/` with your actual project path, for example:**
+- Windows: `"C:\\Projects\\victoury-public-api-mcpserver\\dist\\index.js"`
+- macOS/Linux: `"/home/user/projects/victoury-public-api-mcpserver/dist/index.js"`
+
+### Step 3: Build and Restart
+
 ```bash
-cp .env.example .env
+# Build the server
+npm run build
+
+# Restart Claude Desktop to load the new configuration
 ```
 
-2. Configure your Victoury API credentials:
-```env
-VICTOURY_API_URL=https://api.victoury.com/v2
-VICTOURY_API_KEY=your_api_key_here
-VICTOURY_API_SECRET=your_api_secret_here
-VICTOURY_API_TIMEOUT=30000
+## 🎯 Usage with Dynamic Credentials
+
+Unlike traditional MCP servers, this FastMCP implementation requires credentials with **every** tool call:
+
+### Example: Check API Health
+```
+Can you check the Victoury API health using these credentials:
+- url: https://api.acceptation-victoury.net/v2
+- tenant: my-tenant-code
+- sessionId: my-session-id
 ```
 
-## Usage
+### Example: Get Deal Details
+```
+Get deal details for UUID "62454f5113424008888b1c2c" using:
+- url: https://api.victoury.com/v2
+- tenant: production-tenant
+- sessionId: prod-session-id
+```
 
-### With Claude Desktop
+### Example: Multi-tenant Usage
+```
+Check the API health for both environments:
+1. Testing: url=https://api.acceptation-victoury.net/v2, tenant=test-tenant, sessionId=test-session
+2. Production: url=https://api.victoury.com/v2, tenant=prod-tenant, sessionId=prod-session
+```
 
-Add to your Claude Desktop configuration (`claude_desktop_config.json`):
+## 🔧 Available Tools
 
+### Service Monitoring (No Versioning)
+- **`get_api_info`**: Retrieve API version and environment information
+- **`get_api_health`**: Check API health status and service availability
+
+*Note: These endpoints use `/info` and `/health` (no `/v2` prefix)*
+
+### Deal Management
+- **`get_deal_details`**: Retrieve comprehensive deal information by UUID
+- **`update_deal`**: Update deal fields (custom fields, addresses, etc.)
+- **`search_deals`**: Search deals with flexible criteria and pagination  
+- **`create_option_booking`**: Create option (hold) or booking for products
+
+## 📊 Tool Parameter Examples
+
+### Service Monitoring
+```javascript
+// get_api_health
+{
+  "credentials": {
+    "url": "https://api.acceptation-victoury.net/v2",
+    "tenant": "my-tenant",
+    "sessionId": "my-session-id"
+  }
+}
+```
+
+### Deal Management
+```javascript
+// get_deal_details
+{
+  "dealUuid": "62454f5113424008888b1c2c",
+  "credentials": {
+    "url": "https://api.victoury.com/v2",
+    "tenant": "my-tenant",
+    "sessionId": "my-session-id"
+  }
+}
+
+// search_deals
+{
+  "searchRequest": {
+    "criteria": {
+      "status": "active",
+      "startDate": "2024-01-01"
+    },
+    "count": 50,
+    "page": 1,
+    "sort": "startDate:desc"
+  },
+  "credentials": {
+    "url": "https://api.victoury.com/v2",
+    "tenant": "my-tenant", 
+    "sessionId": "my-session-id"
+  }
+}
+
+// create_option_booking
+{
+  "bookingData": {
+    "type": "O",
+    "productId": "123",
+    "startDate": "2024-07-01",
+    "endDate": "2024-07-08", 
+    "numberOfTravelers": 2,
+    "mainTraveler": {
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "john.doe@example.com"
+    },
+    "optionExpiryDate": "2024-06-01"
+  },
+  "credentials": {
+    "url": "https://api.acceptation-victoury.net/v2",
+    "tenant": "my-tenant",
+    "sessionId": "my-session-id"
+  }
+}
+```
+
+## 🌐 Environment URLs
+
+### Production
+```
+https://api.victoury.com/v2
+```
+
+### Testing/Staging  
+```
+https://api.acceptation-victoury.net/v2
+```
+
+## 🔄 Migration from Old MCP Server
+
+If you're upgrading from the old MCP SDK implementation:
+
+### Old Configuration (Remove This)
 ```json
 {
   "mcpServers": {
     "victoury-api": {
       "command": "node",
-      "args": ["/path/to/victoury-public-api-mcpserver/dist/index.js"],
+      "args": ["/path/to/old/server/dist/index.js"],
       "env": {
-        "VICTOURY_API_KEY": "your_api_key",
-        "VICTOURY_API_SECRET": "your_api_secret"
+        "VICTOURY_API_URL": "https://api.victoury.com/v2",
+        "VICTOURY_API_KEY": "your-tenant",
+        "VICTOURY_API_SECRET": "your-session-id"
       }
     }
   }
 }
 ```
 
-### With MCP Inspector
+### New Configuration (Use This)
+```json
+{
+  "mcpServers": {
+    "victoury-fastmcp": {
+      "command": "node", 
+      "args": ["/path/to/victoury-public-api-mcpserver/dist/index.js"]
+    }
+  }
+}
+```
 
+### Key Differences
+| Old MCP Server | New FastMCP Server |
+|---|---|
+| Environment variables in config | Dynamic credentials per call |
+| Fixed tenant/environment | Multi-tenant per request |
+| Complex configuration | Simple configuration |
+| Manual credential management | Credentials passed with each call |
+
+## 🛠️ Development
+
+### Commands
 ```bash
-npx @modelcontextprotocol/inspector node dist/index.js
-```
-
-## Available Tools
-
-### authenticate
-Authenticate with the Victoury API using API credentials.
-
-```typescript
-{
-  apiKey: string;
-  apiSecret: string;
-}
-```
-
-### list_products
-List available products/tours with optional filters.
-
-```typescript
-{
-  page?: number;          // Default: 1
-  limit?: number;         // Default: 20
-  category?: string;
-  destination?: string;
-  startDate?: string;     // ISO 8601
-  endDate?: string;       // ISO 8601
-}
-```
-
-### get_product_details
-Get detailed information about a specific product.
-
-```typescript
-{
-  productId: string;
-}
-```
-
-### search_customers
-Search for customers by various criteria.
-
-```typescript
-{
-  query?: string;         // General search
-  email?: string;
-  phone?: string;
-  page?: number;          // Default: 1
-  limit?: number;         // Default: 20
-}
-```
-
-### create_booking
-Create a new booking for a product.
-
-```typescript
-{
-  productId: string;
-  customerId: string;
-  startDate: string;      // ISO 8601
-  endDate?: string;       // ISO 8601
-  participants: number;
-  notes?: string;
-}
-```
-
-### get_booking_details
-Retrieve details of a specific booking.
-
-```typescript
-{
-  bookingId: string;
-}
-```
-
-### update_booking
-Update an existing booking.
-
-```typescript
-{
-  bookingId: string;
-  status?: 'confirmed' | 'pending' | 'cancelled';
-  participants?: number;
-  notes?: string;
-}
-```
-
-### list_availability
-Check availability for products within a date range.
-
-```typescript
-{
-  productId: string;
-  startDate: string;      // ISO 8601
-  endDate: string;        // ISO 8601
-  participants?: number;
-}
-```
-
-### get_api_info
-Retrieve API version and environment information.
-
-No parameters required.
-
-### get_api_health
-Check API health status and service availability.
-
-No parameters required.
-
-### get_deal_details
-Retrieve details of a specific deal.
-
-```typescript
-{
-  dealId: string;
-}
-```
-
-### update_deal
-Update deal information.
-
-```typescript
-{
-  dealId: string;
-  status?: string;
-  notes?: string;
-}
-```
-
-### search_publish_deals
-Search for published deals with filters.
-
-```typescript
-{
-  productId?: string;
-  startDate?: string;     // ISO 8601
-  endDate?: string;       // ISO 8601
-  destination?: string;
-  page?: number;
-  limit?: number;
-}
-```
-
-### create_option_booking
-Create an option/hold on a deal before final booking.
-
-```typescript
-{
-  dealId: string;
-  customerId: string;
-  participants: number;
-  notes?: string;
-}
-```
-
-### option_to_booking
-Convert an option/hold into a confirmed booking.
-
-```typescript
-{
-  optionId: string;
-  paymentMethod?: string;
-}
-```
-
-### view_document
-View document details (invoice, ticket, voucher, contract).
-
-```typescript
-{
-  documentId: string;
-}
-```
-
-### download_document
-Download a document in specified format.
-
-```typescript
-{
-  documentId: string;
-  format?: 'pdf' | 'html';  // default: 'pdf'
-}
-```
-
-### get_product_starting_dates
-Retrieve available starting dates for a product.
-
-```typescript
-{
-  productId: string;
-  startDate?: string;     // ISO 8601
-  endDate?: string;       // ISO 8601
-}
-```
-
-### get_product_starting_date_prices
-Get pricing for specific product starting date.
-
-```typescript
-{
-  productId: string;
-  startingDate: string;   // ISO 8601
-  participants?: number;
-}
-```
-
-### get_package_price_availability
-Check package pricing and availability.
-
-```typescript
-{
-  productId: string;
-  packageId: string;
-  startDate: string;      // ISO 8601
-  participants: number;
-}
-```
-
-### update_person
-Update person/traveler information.
-
-```typescript
-{
-  personId: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  dateOfBirth?: string;   // ISO 8601
-}
-```
-
-### update_address
-Update address information.
-
-```typescript
-{
-  addressId: string;
-  street?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  postalCode?: string;
-}
-```
-
-### initialize_quote
-Initialize a new quote with pricing components.
-
-```typescript
-{
-  productId: string;
-  startDate: string;      // ISO 8601
-  participants: number;
-  priceComponents?: Array<{
-    type: string;
-    amount: number;
-  }>;
-}
-```
-
-### register_customer_payment
-Register a customer payment for a booking.
-
-```typescript
-{
-  bookingId: string;
-  amount: number;
-  currency: string;       // e.g., 'EUR', 'USD'
-  paymentMethod: string;
-  transactionId?: string;
-}
-```
-
-## Development
-
-### Setup
-
-```bash
-# Install dependencies
-npm install
-
-# Run in development mode
+# Development with hot reload
 npm run dev
 
-# Build for production
+# Build for production  
 npm run build
+
+# Run production server
+npm start
 
 # Run tests
 npm test
@@ -376,59 +265,73 @@ npm run format
 ```
 
 ### Project Structure
-
 ```
 src/
-├── index.ts          # MCP server setup and tool handlers
-├── api-client.ts     # Victoury API client implementation
-└── types.ts          # TypeScript types and Zod schemas
+├── index.ts              # Main FastMCP server
+├── types.ts              # TypeScript types and Zod schemas
+└── utils/
+    └── api-client.ts     # HTTP request utility
 ```
 
-## API Response Format
+## 🔍 Testing Your Setup
 
-All API responses follow this structure:
+### Method 1: Using MCP Inspector
+```bash
+# Install MCP Inspector globally
+npm install -g @modelcontextprotocol/inspector
 
-```typescript
-{
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-  };
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-}
+# Build your server
+npm run build
+
+# Test with inspector
+npx @modelcontextprotocol/inspector node dist/index.js
 ```
 
-## Error Handling
+### Method 2: Claude Desktop Integration
+1. Configure Claude Desktop (steps above)
+2. Restart Claude Desktop
+3. Ask Claude: "What MCP tools do you have available?"
+4. Test a tool: "Check the API health using url=..., tenant=..., sessionId=..."
 
-The server handles various error types:
+## 🐛 Troubleshooting
 
-- **Validation Errors**: Invalid input parameters
-- **Authentication Errors**: Invalid or expired credentials
-- **API Errors**: Upstream API issues
-- **Network Errors**: Connection problems
-- **Timeout Errors**: Request timeouts
+### Claude Desktop Not Seeing Server
+1. Check the file path in configuration is correct
+2. Ensure the server builds successfully (`npm run build`)
+3. Restart Claude Desktop completely
+4. Check Claude Desktop logs for errors
 
-All errors are returned in MCP-compliant format with detailed messages.
+### Tool Calls Failing
+1. Verify credentials are valid
+2. Check network connectivity to Victoury API
+3. Ensure correct URL format (with/without `/v2`)
+4. Validate tenant and sessionId format
 
-## Security
+### Common Issues
+- **Path separators**: Use forward slashes `/` or escaped backslashes `\\` in JSON
+- **Build required**: Always run `npm run build` after code changes
+- **Absolute paths**: Use full absolute paths in Claude Desktop config
 
-- API credentials are never logged or exposed
-- All inputs are validated using Zod schemas
-- HTTPS connections are enforced
-- Authentication tokens are stored in memory only
+## 🔒 Security
 
-## License
+- **No credential storage**: Credentials never stored in configuration or logs
+- **Per-request auth**: Each API call uses provided credentials
+- **Input validation**: All inputs validated with Zod schemas
+- **HTTPS enforcement**: All API calls use HTTPS
+- **Error sanitization**: Sensitive information filtered from error messages
+
+## 📚 Additional Resources
+
+- [FastMCP Documentation](https://github.com/punkpeye/fastmcp)
+- [Model Context Protocol](https://modelcontextprotocol.io)
+- [Claude Desktop Configuration](https://docs.anthropic.com/claude/docs/claude-desktop)
+- [Victoury API Documentation](./docs/README.md)
+
+## 📄 License
 
 MIT
 
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -436,9 +339,9 @@ MIT
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## Support
+## 📞 Support
 
 For issues and questions:
 - Create an issue on GitHub
 - Contact Victoury support for API-specific questions
-- Check the [MCP documentation](https://modelcontextprotocol.io) for protocol details
+- Check the [FastMCP documentation](https://github.com/punkpeye/fastmcp) for framework details

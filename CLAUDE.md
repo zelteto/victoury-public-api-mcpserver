@@ -1,252 +1,193 @@
 # CLAUDE.md
 
-This file provides comprehensive guidance to Claude Code (claude.ai/code) when working with the Victoury Public API MCP Server.
+This file provides comprehensive guidance to Claude Code (claude.ai/code) when working with the Victoury Public API FastMCP Server.
 
 ## Project Overview
 
-This is an MCP (Model Context Protocol) server implementation for the Victoury Public API v2. The server provides a standardized interface for AI agents to interact with Victoury's travel management platform, enabling operations such as product listing, customer management, booking creation, and availability checking.
+This is a FastMCP server implementation for the Victoury Public API v2. The server provides a standardized interface for AI agents to interact with Victoury's travel management platform, enabling operations such as deal management, service monitoring, and more. Built with FastMCP for modern, decorator-based development with dynamic credential support.
 
 ## Architecture
 
 ### Technology Stack
 - **Runtime**: Node.js with TypeScript
-- **MCP SDK**: `@modelcontextprotocol/sdk` - Official MCP implementation
+- **MCP Framework**: `fastmcp` - Modern, decorator-based MCP framework
 - **HTTP Client**: Axios for API communication
 - **Validation**: Zod for runtime type validation
-- **Environment**: dotenv for configuration management
+- **Dynamic Credentials**: No environment variables - all credentials passed per request
 
 ### Project Structure
 ```
 victoury-public-api-mcpserver/
 ├── src/
-│   ├── index.ts          # Main server entry point and MCP setup
-│   ├── api-client.ts     # Victoury API client implementation
-│   └── types.ts          # TypeScript interfaces and Zod schemas
-├── tests/                # Test suite (Jest)
-├── dist/                 # Compiled JavaScript output
-├── .env.example          # Environment configuration template
-├── tsconfig.json         # TypeScript configuration
-├── package.json          # Project dependencies and scripts
-└── CLAUDE.md            # This file
+│   ├── index.ts              # Main FastMCP server entry point
+│   ├── types.ts              # TypeScript interfaces and Zod schemas
+│   ├── tools/                # Tool implementations by category
+│   │   ├── service-monitoring.ts  # API health and info endpoints
+│   │   └── deal.ts               # Deal management tools
+│   └── utils/
+│       └── api-client.ts     # HTTP request utility functions
+├── fastmcp/                  # FastMCP specification and docs
+├── tests/                    # Test suite (Jest)
+├── dist/                     # Compiled JavaScript output
+├── docs/                     # API documentation (markdown files)
+├── tsconfig.json             # TypeScript configuration
+├── package.json              # Project dependencies and scripts
+└── CLAUDE.md                # This file
 ```
 
-## MCP Server Implementation
+## FastMCP Server Implementation
+
+### Key Features
+
+1. **Dynamic Credentials**: Every tool call requires credentials as a parameter
+2. **No Environment Variables**: Pure per-request configuration
+3. **Multi-tenant Support**: Switch tenants/environments per call
+4. **Type Safety**: Full TypeScript and Zod validation
+5. **Modular Structure**: Tools organized by category
+6. **Clear Documentation**: Comprehensive docstrings with examples
 
 ### Available Tools
 
-The server exposes the following tools through MCP:
+The server exposes the following tools through FastMCP:
 
-#### System Information
+#### Service Monitoring (No Versioning)
 1. **get_api_info**
    - Purpose: Retrieve API version and environment information
-   - Parameters: None
+   - Parameters: `credentials` (required)
    - Returns: API version, environment details
    - Note: Uses `/info` endpoint (not `/v2/info`)
 
 2. **get_api_health**
    - Purpose: Check API health status and service availability
-   - Parameters: None
+   - Parameters: `credentials` (required)
    - Returns: Health status of API components
    - Note: Uses `/health` endpoint (not `/v2/health`)
 
 #### Deal Management
 3. **get_deal_details**
-   - Purpose: Retrieve details of a specific deal
-   - Parameters: `dealId` (UUID)
-   - Returns: Complete deal information
+   - Purpose: Retrieve comprehensive deal information
+   - Parameters: `dealUuid`, `credentials` (required)
+   - Returns: Complete deal details including customer info, travelers, arrangements
 
 4. **update_deal**
-   - Purpose: Update deal information
-   - Parameters: `dealId`, `status`, `notes`
+   - Purpose: Update deal information (PATCH)
+   - Parameters: `dealId`, `updateData`, `credentials` (required)
    - Returns: Updated deal object
+   - Supports: Custom fields, person-customer addresses
 
-5. **search_publish_deals**
-   - Purpose: Search for published deals with filters
-   - Parameters: `destination`, `startDate`, `endDate`, `productId`, `page`, `limit`
-   - Returns: Array of matching deals
+5. **search_deals**
+   - Purpose: Search deals with flexible criteria
+   - Parameters: `searchRequest`, `credentials` (required)
+   - Returns: Array of matching deals with pagination
+   - Features: Multiple search criteria, sorting, pagination
 
 6. **create_option_booking**
-   - Purpose: Create an option/hold on a deal before final booking
-   - Parameters: `dealId`, `customerId`, `participants`, `notes`
-   - Returns: Option booking confirmation
-
-7. **option_to_booking**
-   - Purpose: Convert an option/hold into a confirmed booking
-   - Parameters: `optionId`, `paymentMethod`
-   - Returns: Booking confirmation
-
-#### Document Management
-8. **view_document**
-   - Purpose: View document details (invoice, ticket, voucher, contract)
-   - Parameters: `documentId`
-   - Returns: Document metadata
-
-9. **download_document**
-   - Purpose: Download a document in specified format
-   - Parameters: `documentId`, `format` (pdf/html)
-   - Returns: Document file
-
-#### Product Management
-10. **list_products**
-    - Purpose: List available products/tours from catalog
-    - Parameters: `page`, `limit`, `category`, `destination`, `startDate`, `endDate`
-    - Returns: Paginated product list
-
-11. **get_product_details**
-    - Purpose: Get detailed product information
-    - Parameters: `productId`
-    - Returns: Complete product details
-
-12. **get_product_starting_dates**
-    - Purpose: Retrieve available starting dates for a product
-    - Parameters: `productId`, `startDate`, `endDate`
-    - Returns: Array of available dates
-
-13. **get_product_starting_date_prices**
-    - Purpose: Get pricing for specific product starting date
-    - Parameters: `productId`, `startingDate`, `participants`
-    - Returns: Pricing details
-
-14. **get_package_price_availability**
-    - Purpose: Check package pricing and availability
-    - Parameters: `productId`, `packageId`, `startDate`, `participants`
-    - Returns: Package pricing and availability
-
-#### Customer Management
-15. **search_customers**
-    - Purpose: Search for customers in the system
-    - Parameters: `query`, `email`, `phone`, `page`, `limit`
-    - Returns: Customer search results
-
-#### Person/Address Management
-16. **update_person**
-    - Purpose: Update person/traveler information
-    - Parameters: `personId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`
-    - Returns: Updated person details
-
-17. **update_address**
-    - Purpose: Update address information
-    - Parameters: `addressId`, `street`, `city`, `state`, `postalCode`, `country`
-    - Returns: Updated address details
-
-#### Quote Management
-18. **initialize_quote**
-    - Purpose: Initialize a new quote with pricing components
-    - Parameters: `productId`, `startDate`, `participants`, `priceComponents`
-    - Returns: Quote details with pricing
-
-#### Booking Management
-19. **create_booking**
-    - Purpose: Create a new booking for a product
-    - Parameters: `productId`, `customerId`, `startDate`, `endDate`, `participants`, `notes`
-    - Returns: Booking confirmation
-
-20. **get_booking_details**
-    - Purpose: Retrieve booking information
-    - Parameters: `bookingId`
-    - Returns: Complete booking details
-
-21. **update_booking**
-    - Purpose: Modify existing booking
-    - Parameters: `bookingId`, `status`, `participants`, `notes`
-    - Returns: Updated booking
-
-#### Payment Management
-22. **register_customer_payment**
-    - Purpose: Register a customer payment for a booking
-    - Parameters: `bookingId`, `amount`, `currency`, `paymentMethod`, `transactionId`
-    - Returns: Payment confirmation
-
-#### Availability Management
-23. **list_availability**
-    - Purpose: Check product availability within date range
-    - Parameters: `productId`, `startDate`, `endDate`, `participants`
-    - Returns: Availability calendar
-
-### API Reference
-
-For detailed API endpoint documentation, see the [Victoury API Reference](./reference/victoury-api-reference.md) file which contains:
-- Complete endpoint specifications
-- Request/response examples
-- Error codes and handling
-- Authentication details
-- Rate limiting information
-
-### API Client Architecture
-
-The `VictouryAPIClient` class handles:
-- HTTP request/response management
-- Authentication token persistence
-- Error handling and transformation
-- Request/response interceptors
-- Type-safe method signatures
+   - Purpose: Create option (hold) or booking for products
+   - Parameters: `bookingData`, `credentials` (required)
+   - Returns: Created option/booking details
+   - Note: Automatically creates Customer Payments entry
 
 ### Credentials Management
 
-The MCP server supports two modes for credentials:
+**CRITICAL**: Every tool requires dynamic credentials. No environment variables are used.
 
-#### 1. Default: Environment Variables
-When starting the MCP server, it reads credentials from environment variables:
-- `VICTOURY_API_URL`: Base URL for Victoury API (default: https://api.victoury.com/v2)
-- `VICTOURY_API_KEY`: Your API key (used as Tenant header)
-- `VICTOURY_API_SECRET`: Your API secret (used as Session-Id header)
+#### Credential Structure
+```typescript
+credentials: {
+  url: string;      // API base URL (e.g., https://api.victoury.com/v2)
+  tenant: string;   // Tenant identifier
+  sessionId: string; // Session ID for authentication
+}
+```
 
-This is the default behavior and requires no changes to existing code.
-
-#### 2. Dynamic: Per-Request Credentials
-Each tool now accepts an optional `credentials` parameter that can override the default environment variables:
-
+#### Usage Example
 ```json
 {
-  "tool": "list_products",
-  "arguments": {
-    "category": "tours",
-    "credentials": {
-      "url": "https://api.client-specific.victoury.com/v2",
-      "tenant": "client-specific-tenant",
-      "sessionId": "client-specific-session"
-    }
+  "dealUuid": "62454f5113424008888b1c2c",
+  "credentials": {
+    "url": "https://api.acceptation-victoury.net/v2",
+    "tenant": "my-tenant",
+    "sessionId": "my-session-id"
   }
 }
 ```
 
-**How it works:**
-- If `credentials` are provided in the request, they override environment variables for that specific API call
-- If `credentials` are not provided, the server uses the environment variables
-- This allows backward compatibility while enabling multi-tenant support
-- Each request is isolated with its own credentials when provided
+### API Client Architecture
 
-**Use cases:**
-- Single-tenant deployments: Just use environment variables (no code changes needed)
-- Multi-tenant deployments: Pass credentials with each request
-- Environment switching: Switch between dev/staging/prod in the same conversation
-- Client isolation: Handle multiple clients from a single MCP server instance
+The FastMCP implementation uses a centralized API client utility:
+
+#### `makeVictouryRequest` Function
+- Handles dynamic credential usage
+- Manages versioning logic (service monitoring endpoints don't use /v2)
+- Transforms errors into user-friendly messages
+- Supports timeout configuration
+- Provides consistent header setup
+
+#### Error Handling
+1. **Validation Errors**: Zod schema validation with detailed messages
+2. **API Errors**: Transformed HTTP responses with status codes
+3. **Network Errors**: Connection timeouts and network failures
+4. **Authentication Errors**: Invalid credentials handling
+
+### Tool Development Pattern
+
+All FastMCP tools follow this consistent pattern:
+
+```typescript
+@mcp.tool
+async function tool_name(
+  // Tool-specific required parameters first
+  requiredParam: string,
+  
+  // Tool-specific optional parameters  
+  optionalParam?: string,
+  
+  // Credentials ALWAYS last and ALWAYS required
+  credentials: z.infer<typeof VictouryCredentials>
+): Promise<ReturnType> {
+  """Clear tool description with parameter documentation.
+  
+  Args:
+    requiredParam: Description of required parameter
+    optionalParam: Description of optional parameter
+    credentials: API credentials (url, tenant, sessionId) - REQUIRED
+  
+  Returns:
+    Description of return value with examples
+  """
+  
+  // 1. Validate credentials
+  const validatedCreds = VictouryCredentials.parse(credentials);
+  
+  // 2. Validate other parameters if needed
+  // 3. Make API request using makeVictouryRequest
+  // 4. Return structured response
+}
+```
 
 ## Development Setup
 
 ### Prerequisites
-- Node.js 18+ (for native ES modules support)
+- Node.js 18+ (FastMCP requires modern Node.js)
 - npm or yarn package manager
-- Victoury API credentials
+- No Victoury API credentials needed in environment
 
 ### Installation
 ```bash
 # Install dependencies
 npm install
 
-# Copy environment template
-cp .env.example .env
+# Build TypeScript
+npm run build
 
-# Configure your API credentials in .env
+# Run development server with hot reload
+npm run dev
+
+# Run production server
+npm start
 ```
 
-### Environment Variables
-- `VICTOURY_API_URL`: Base URL for Victoury API (default: https://api.victoury.com/v2)
-- `VICTOURY_API_KEY`: Your API key
-- `VICTOURY_API_SECRET`: Your API secret
-- `VICTOURY_API_TIMEOUT`: Request timeout in milliseconds (default: 30000)
-
-## Common Commands
+### Common Commands
 
 ```bash
 # Development (with hot reload)
@@ -272,47 +213,65 @@ npm run format
 
 ### Unit Tests
 - Test each tool handler independently
-- Mock API client responses
-- Validate parameter parsing
-- Test error scenarios
+- Mock API client responses with different credentials
+- Validate parameter parsing and credential validation
+- Test error scenarios with malformed credentials
 
 ### Integration Tests
-- Test full request/response flow
-- Validate MCP protocol compliance
-- Test authentication flow
+- Test full request/response flow with real credentials
+- Validate FastMCP protocol compliance
+- Test multi-tenant credential switching
 - Verify error propagation
 
-## Error Handling
-
-The server implements comprehensive error handling:
-
-1. **Validation Errors**: Zod schema validation with detailed messages
-2. **API Errors**: HTTP status codes and error messages from Victoury
-3. **Network Errors**: Connection timeouts and network failures
-4. **Authentication Errors**: Token expiration and invalid credentials
-
-All errors are returned in MCP-compliant format with `isError: true`.
+### Testing with Dynamic Credentials
+```typescript
+// Example test with different credentials
+it('should handle multiple tenants', async () => {
+  const tenant1Creds = {
+    url: 'https://api.tenant1.victoury.net/v2',
+    tenant: 'tenant1',
+    sessionId: 'session1'
+  };
+  
+  const tenant2Creds = {
+    url: 'https://api.tenant2.victoury.net/v2', 
+    tenant: 'tenant2',
+    sessionId: 'session2'
+  };
+  
+  // Test same tool with different credentials
+  const result1 = await client.call_tool('get_api_info', { credentials: tenant1Creds });
+  const result2 = await client.call_tool('get_api_info', { credentials: tenant2Creds });
+  
+  // Verify different environments were accessed
+});
+```
 
 ## Security Considerations
 
-1. **API Credentials**: Never commit `.env` files; use environment variables
-2. **Token Management**: Auth tokens are stored in memory only
-3. **Input Validation**: All inputs validated with Zod schemas
-4. **HTTPS Only**: API client enforces HTTPS connections
-5. **Timeout Protection**: Configurable request timeouts prevent hanging
+1. **No Credential Storage**: All credentials passed per request, never stored
+2. **Input Validation**: All inputs validated with Zod schemas
+3. **HTTPS Only**: API client enforces HTTPS connections
+4. **Timeout Protection**: Configurable request timeouts prevent hanging
+5. **Error Sanitization**: API errors transformed to prevent information leakage
 
 ## API Integration Notes
 
 ### Authentication Flow
-1. Initial authentication using API key/secret
-2. Receive JWT token
-3. Include token in subsequent requests
-4. Handle token expiration gracefully
+- Per-request authentication using credentials parameter
+- Tenant code in `Tenant` header
+- Session ID in `Session-Id` header
+- No token management or storage needed
+
+### Versioning
+- Most endpoints use `/v2/` in URL path
+- Service monitoring endpoints (`/info`, `/health`) don't use versioning
+- `makeVictouryRequest` handles versioning logic automatically
 
 ### Rate Limiting
 - Monitor API response headers for rate limit information
-- Implement exponential backoff for retries
-- Consider caching for frequently accessed data
+- Consider implementing client-side rate limiting for high-volume usage
+- Each credential set has independent rate limits
 
 ### Data Formats
 - Dates: ISO 8601 format (YYYY-MM-DDTHH:mm:ssZ)
@@ -323,40 +282,78 @@ All errors are returned in MCP-compliant format with `isError: true`.
 ## Extending the Server
 
 ### Adding New Tools
-1. Define tool schema in `TOOLS` array (index.ts)
-2. Add parameter types to types.ts
-3. Implement handler in switch statement
-4. Add corresponding method to VictouryAPIClient
+1. Create new tool file in `src/tools/` directory
+2. Define tool function with `@mcp.tool` decorator
+3. Add parameter types to `types.ts`
+4. Register tools in main server file (`src/index.ts`)
 5. Update tests and documentation
 
-### Adding Resources
-For read-only data access, consider implementing MCP resources:
-- Product catalogs
-- Customer lists
-- Booking reports
-- Availability calendars
+### Adding New Tool Categories
+1. Create new file in `src/tools/category-name.ts`
+2. Export registration function: `registerCategoryTools(mcp: FastMCP)`
+3. Import and call in main server file
+4. Document new category in this file
+
+### Example New Tool
+```typescript
+// src/tools/product.ts
+import { FastMCP } from 'fastmcp';
+import { z } from 'zod';
+import { VictouryCredentials } from '../types.js';
+import { makeVictouryRequest } from '../utils/api-client.js';
+
+export function registerProductTools(mcp: FastMCP) {
+  @mcp.tool
+  async function get_product_details(
+    productId: string,
+    credentials: z.infer<typeof VictouryCredentials>
+  ) {
+    """Get detailed product information.
+    
+    Args:
+      productId: Unique identifier of the product
+      credentials: API credentials (url, tenant, sessionId) - REQUIRED
+    
+    Returns:
+      Detailed product information including pricing, availability, descriptions.
+    """
+    if (!productId.trim()) {
+      throw new Error('productId is required and cannot be empty');
+    }
+    
+    const validatedCreds = VictouryCredentials.parse(credentials);
+    
+    return await makeVictouryRequest(validatedCreds, {
+      method: 'GET',
+      endpoint: `/products/${productId}.json`
+    });
+  }
+}
+```
 
 ## Debugging
 
 ### Enable Debug Logging
-```bash
-# Set log level
-export DEBUG=mcp:*
-export VICTOURY_LOG_LEVEL=debug
-```
+FastMCP provides built-in logging. Check FastMCP documentation for logging configuration.
 
 ### Common Issues
-1. **Authentication fails**: Check API credentials and network access
-2. **Type errors**: Ensure all parameters match Zod schemas
-3. **Timeout errors**: Increase VICTOURY_API_TIMEOUT
-4. **CORS issues**: This is a server-side implementation, no CORS
+1. **Decorator Errors**: Ensure `experimentalDecorators: true` in tsconfig.json
+2. **Import Errors**: Use `.js` extensions for TypeScript imports in Node.js ESM
+3. **Credential Validation**: All credentials must pass Zod schema validation
+4. **API Errors**: Check credential validity and API endpoint availability
+
+### Error Debugging
+The server provides detailed error messages:
+- **Validation Errors**: Zod validation with field-specific messages
+- **API Errors**: HTTP status codes with Victoury error details
+- **Network Errors**: Connection and timeout information
 
 ## Performance Optimization
 
-1. **Connection Pooling**: Axios reuses HTTP connections
-2. **Response Caching**: Consider implementing for static data
-3. **Pagination**: Use appropriate page sizes for list operations
-4. **Selective Fields**: Request only needed fields when API supports it
+1. **Request Efficiency**: Single API client instance with connection pooling
+2. **Error Caching**: Consider caching error responses to prevent repeated failed calls
+3. **Credential Validation**: Fast Zod validation before API calls
+4. **Async Operations**: All tools are async for non-blocking execution
 
 ## Maintenance
 
@@ -368,26 +365,27 @@ npm outdated
 # Update dependencies
 npm update
 
-# Update to latest major versions (careful!)
-npm install package@latest
+# Update FastMCP specifically
+npm install fastmcp@latest
 ```
 
 ### API Version Changes
 - Monitor Victoury API changelog
-- Test thoroughly with API sandbox
-- Update types and validation schemas
+- Test thoroughly with API sandbox using test credentials
+- Update types and validation schemas in `src/types.ts`
+- Update tool implementations as needed
 - Increment server version appropriately
 
 ## Contributing
 
 When making changes:
-1. Update types.ts for new data structures
-2. Extend api-client.ts for new endpoints
-3. Add tool definitions to index.ts
-4. Write comprehensive tests
+1. Update `src/types.ts` for new data structures
+2. Implement tools in appropriate category files in `src/tools/`
+3. Add tool registration in `src/index.ts`
+4. Write comprehensive tests with credential variations
 5. Update this documentation
-6. Follow TypeScript best practices
-7. Ensure all tools return MCP-compliant responses
+6. Follow TypeScript and FastMCP best practices
+7. Ensure all tools require credentials parameter
 
 ### Git Commit Guidelines
 
@@ -400,11 +398,11 @@ When committing changes:
 
 2. **Clean commit messages**:
    ```bash
-   # Instead of the auto-generated Claude message:
-   git commit -m "feat: Add new API methods"
+   # Clean commit message:
+   git commit -m "feat: Add product management tools to FastMCP server"
    
    # Not this (with Claude artifacts):
-   git commit -m "feat: Add new API methods
+   git commit -m "feat: Add product management tools
    
    🤖 Generated with [Claude Code](https://claude.ai/code)
    Co-Authored-By: Claude <noreply@anthropic.com>"
@@ -415,3 +413,34 @@ When committing changes:
    - Check for any temporary analysis files
    - Ensure commit history is clean
    - Remove any debugging console.logs added during development
+
+## FastMCP Specific Notes
+
+### Decorator Usage
+FastMCP uses modern decorator syntax:
+```typescript
+@mcp.tool  // No parentheses needed (naked decorator)
+async function my_tool() { ... }
+```
+
+### Server Instructions
+The server includes comprehensive instructions that appear in Claude Desktop and other MCP clients, explaining:
+- Available tool categories
+- Credential requirements
+- Usage examples
+- Base URLs for different environments
+
+### Multi-tenant Architecture
+This implementation is designed for multi-tenant usage:
+- Each API call includes full credentials
+- No shared state between requests
+- Environment switching per request
+- Isolated error handling per credential set
+
+### Future Enhancements
+1. Add remaining API categories (Product, Customer, Document, etc.)
+2. Implement response caching with credential-based cache keys
+3. Add request retry logic with exponential backoff
+4. Support for batch operations
+5. WebSocket support for real-time updates
+6. Enhanced error recovery mechanisms
